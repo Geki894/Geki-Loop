@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Run"
+  short_description: "Execute selected epics through verified coding loops"
+  default_prompt: "Use $geki-run to execute the selected epics through the autonomous engineering loop."

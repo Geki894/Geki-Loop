@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Backend NestJS"
+  short_description: "Build verified NestJS APIs with native conventions"
+  default_prompt: "Use $geki-backend-nestjs to implement an approved NestJS backend story."

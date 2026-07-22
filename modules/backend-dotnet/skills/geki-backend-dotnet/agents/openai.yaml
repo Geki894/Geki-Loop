@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Backend .NET"
+  short_description: "Build verified .NET 8 Web APIs without ceremony"
+  default_prompt: "Use $geki-backend-dotnet to implement an approved ASP.NET Core Web API story."

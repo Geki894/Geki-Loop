@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki PostgreSQL"
+  short_description: "Design and verify PostgreSQL and Supabase changes"
+  default_prompt: "Use $geki-database-postgres to implement a PostgreSQL or Supabase data change."

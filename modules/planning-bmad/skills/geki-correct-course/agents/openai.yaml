@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Correct Course"
+  short_description: "Reopen specifications and propagate material changes"
+  default_prompt: "Use $geki-correct-course to repair a material specification or architecture gap."

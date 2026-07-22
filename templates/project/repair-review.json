@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "repair-review",
+  "outcome": "failed",
+  "signature": "",
+  "reviewerContextId": "",
+  "reviewedCommit": "",
+  "unresolvedHighCritical": 0,
+  "findings": [],
+  "approvedStrategy": ""
+}

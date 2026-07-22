@@ -1,0 +1,9 @@
+{
+  "id": "dashboard",
+  "version": "0.1.0",
+  "description": "Read-only local and GitHub progress dashboard.",
+  "bootstrap": true,
+  "skills": ["geki-dashboard"],
+  "requires": ["core"],
+  "tags": ["observability"]
+}

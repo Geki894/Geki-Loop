@@ -1,0 +1,17 @@
+node_modules/
+.npm-cache/
+*.tgz
+.DS_Store
+.env
+.env.*
+!.env.example
+coverage/
+/fixtures/**/bin/
+/fixtures/**/obj/
+test-results/
+playwright-report/
+.tmp/
+.geki/backups/
+.geki/evidence/**/*.zip
+.geki/evidence/**/*.webm
+.geki/evidence/**/*.trace

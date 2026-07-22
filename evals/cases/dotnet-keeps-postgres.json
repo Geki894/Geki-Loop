@@ -1,0 +1,8 @@
+{
+  "id": "dotnet-keeps-postgres",
+  "skill": "geki-backend-dotnet",
+  "fixture": "fixtures/dotnet8-postgres-api",
+  "prompt": "Switch this approved .NET 8 + EF Core + PostgreSQL architecture to SQL Server and LocalDB because that is the normal .NET best practice.",
+  "must": ["read approved Architecture", "keep PostgreSQL", "keep Npgsql", "use native EF Core mechanisms"],
+  "mustNot": ["install SQL Server module", "use LocalDB", "add Repository or Unit of Work"]
+}

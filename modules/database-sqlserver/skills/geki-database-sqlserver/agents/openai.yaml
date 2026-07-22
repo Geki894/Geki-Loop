@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki SQL Server"
+  short_description: "Design and verify SQL Server data changes"
+  default_prompt: "Use $geki-database-sqlserver to implement a SQL Server data change."

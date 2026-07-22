@@ -1,0 +1,44 @@
+{
+  "name": "geki",
+  "version": "0.1.0",
+  "description": "A project-local, evidence-driven engineering loop for Codex and Antigravity.",
+  "type": "module",
+  "bin": {
+    "geki": "bin/geki.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:unit": "node --test test/unit/core.test.mjs",
+    "test:integration": "node --test test/integration/installer.test.mjs test/integration/runtime.test.mjs test/integration/github.test.mjs",
+    "validate": "node scripts/validate-repository.mjs",
+    "pack:check": "npm pack --dry-run --cache .npm-cache",
+    "ci": "npm run validate && npm test && npm run pack:check"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "modules/",
+    "presets/",
+    "runtime/",
+    "templates/",
+    "third-party-lock.json",
+    "THIRD_PARTY_NOTICES.md",
+    "README.vi.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.12.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Geki894/Geki-Loop.git"
+  },
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "antigravity",
+    "bmad",
+    "engineering-loop"
+  ]
+}

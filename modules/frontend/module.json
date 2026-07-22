@@ -1,0 +1,11 @@
+{
+  "id": "frontend",
+  "version": "0.1.0",
+  "description": "Surface-aware frontend routing through curated skills.",
+  "bootstrap": false,
+  "skills": ["geki-frontend"],
+  "requires": ["execution-loop", "testing"],
+  "detect": ["package.json", "vite.config.*", "next.config.*"],
+  "architecture": {"surface": ["web", "frontend", "fullstack", "spa", "dashboard", "landing", "product-ui"]},
+  "tags": ["frontend"]
+}

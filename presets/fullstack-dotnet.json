@@ -1,0 +1,5 @@
+{
+  "id": "fullstack-dotnet",
+  "description": ".NET 8/PostgreSQL backend plus routed frontend quality skills.",
+  "modules": ["core", "planning-bmad", "spec-council", "provisioning", "dashboard", "execution-loop", "testing", "backend-dotnet", "database-postgres", "frontend", "github-ci"]
+}

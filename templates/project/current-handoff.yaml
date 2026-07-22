@@ -1,0 +1,11 @@
+schema_version: 1
+status: idle
+phase: planning
+story: null
+branch: null
+checkpoint_commit: null
+last_agent: null
+completed: []
+remaining: []
+known_failure: null
+next_action: "Run geki-help to inspect the project state."

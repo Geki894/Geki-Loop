@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Help"
+  short_description: "Show the current phase and safest next action"
+  default_prompt: "Use $geki-help to explain the current Geki phase and next action."

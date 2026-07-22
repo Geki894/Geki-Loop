@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Verify"
+  short_description: "Run evidence-based completion quality gates"
+  default_prompt: "Use $geki-verify to prove a story or epic satisfies every required quality gate."

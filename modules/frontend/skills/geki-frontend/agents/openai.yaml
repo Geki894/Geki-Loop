@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Frontend"
+  short_description: "Route frontend work through curated design skills"
+  default_prompt: "Use $geki-frontend to implement and verify an approved frontend story."

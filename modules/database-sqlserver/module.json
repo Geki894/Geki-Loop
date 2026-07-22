@@ -1,0 +1,11 @@
+{
+  "id": "database-sqlserver",
+  "version": "0.1.0",
+  "description": "SQL Server and container-backed integration testing profile.",
+  "bootstrap": false,
+  "skills": ["geki-database-sqlserver"],
+  "requires": ["execution-loop", "testing"],
+  "detect": ["Microsoft.EntityFrameworkCore.SqlServer", "UseSqlServer", "mssql", "sqlserver"],
+  "architecture": {"database": ["sqlserver", "sql-server", "mssql"]},
+  "tags": ["database", "sqlserver"]
+}

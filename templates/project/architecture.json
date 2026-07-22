@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "status": "draft",
+  "approvedAt": null,
+  "sourceArtifacts": [],
+  "backend": {
+    "runtime": null,
+    "framework": null,
+    "targetFramework": null,
+    "architectureStyle": "modular-monolith"
+  },
+  "database": {
+    "engine": null,
+    "hosting": null,
+    "orm": null,
+    "driver": null,
+    "migrationTool": null
+  },
+  "api": {
+    "style": "rest",
+    "contract": "openapi"
+  },
+  "authentication": {
+    "strategy": null
+  },
+  "frontend": {
+    "surface": null,
+    "framework": null
+  },
+  "deployment": {
+    "provider": null,
+    "completionGate": false
+  },
+  "decisions": []
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Sync"
+  short_description: "Provision modules from the approved architecture"
+  default_prompt: "Use $geki-sync to reconcile installed Geki modules with the approved architecture."

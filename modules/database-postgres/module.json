@@ -1,0 +1,11 @@
+{
+  "id": "database-postgres",
+  "version": "0.1.0",
+  "description": "PostgreSQL, Docker Postgres, and Supabase database profile.",
+  "bootstrap": false,
+  "skills": ["geki-database-postgres"],
+  "requires": ["execution-loop", "testing"],
+  "detect": ["prisma/schema.prisma", "supabase/config.toml", "docker-compose.yml", "compose.yaml"],
+  "architecture": {"database": ["postgres", "postgresql", "supabase"]},
+  "tags": ["database", "postgres", "supabase"]
+}

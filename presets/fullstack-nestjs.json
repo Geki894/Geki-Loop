@@ -1,0 +1,5 @@
+{
+  "id": "fullstack-nestjs",
+  "description": "NestJS/Prisma/PostgreSQL backend plus routed frontend skills.",
+  "modules": ["core", "planning-bmad", "spec-council", "provisioning", "dashboard", "execution-loop", "testing", "backend-nestjs", "database-postgres", "frontend", "github-ci"]
+}

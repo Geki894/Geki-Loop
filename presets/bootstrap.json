@@ -1,0 +1,5 @@
+{
+  "id": "bootstrap",
+  "description": "Interactive planning, review, state, sync, and dashboard.",
+  "modules": ["core", "planning-bmad", "spec-council", "provisioning", "dashboard"]
+}

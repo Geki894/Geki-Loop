@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Testing"
+  short_description: "Design and run layered deterministic test evidence"
+  default_prompt: "Use $geki-testing to create or execute the required test strategy for a story."

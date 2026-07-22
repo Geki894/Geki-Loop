@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "policy": "Upstreams are reviewed and deliberately updated; never resolve floating latest versions during a Geki run.",
+  "sources": [
+    {
+      "id": "bmad-method",
+      "repository": "https://github.com/bmad-code-org/BMAD-METHOD.git",
+      "ref": "8b4da79161f14f31cdab96ab4ec1d3f4cb42583d",
+      "license": "MIT",
+      "use": "Planning workflow concepts adapted into Geki-owned skills; no upstream code vendored"
+    },
+    {
+      "id": "superpowers",
+      "repository": "https://github.com/obra/superpowers.git",
+      "ref": "d884ae04edebef577e82ff7c4e143debd0bbec99",
+      "license": "MIT",
+      "use": "TDD, systematic debugging, worktree, review, and verification concepts; no upstream code vendored"
+    },
+    {
+      "id": "taste-skill",
+      "repository": "https://github.com/leonxlnx/taste-skill.git",
+      "ref": "98565e65bc3274ddf6eb0838734341714057178b",
+      "license": "MIT",
+      "use": "Landing page and portfolio routing inspiration; no upstream code vendored"
+    },
+    {
+      "id": "impeccable",
+      "repository": "https://github.com/pbakaus/impeccable.git",
+      "ref": "4d849eb75f216109ea7053ed21530a11fafcc786",
+      "license": "Apache-2.0",
+      "use": "Product UI, dashboard, audit, and polish routing inspiration; no upstream code vendored"
+    },
+    {
+      "id": "vercel-agent-skills",
+      "repository": "https://github.com/vercel-labs/agent-skills.git",
+      "ref": "4559f18a20c1691c744b4395194290db6a0df5e9",
+      "license": "MIT",
+      "use": "React architecture, performance, composition, and web guideline concepts; no upstream code vendored"
+    },
+    {
+      "id": "supabase-agent-skills",
+      "repository": "https://github.com/supabase/agent-skills.git",
+      "ref": "1ad9aaeb49caafd9e95c0a91116f71890eebbc53",
+      "license": "MIT",
+      "use": "PostgreSQL performance and Supabase practice concepts; no upstream code vendored"
+    }
+  ]
+}

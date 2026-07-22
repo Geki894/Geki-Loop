@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "commands": [],
+  "requiredEvidence": [
+    "format",
+    "lint",
+    "typecheck",
+    "build",
+    "unit",
+    "integration",
+    "api",
+    "security",
+    "independent-review"
+  ],
+  "conditionalEvidence": ["database-migration", "playwright", "github", "sandbox-api", "email"]
+}

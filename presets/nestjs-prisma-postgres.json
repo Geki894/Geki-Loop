@@ -1,0 +1,5 @@
+{
+  "id": "nestjs-prisma-postgres",
+  "description": "NestJS REST API with Prisma, PostgreSQL, and GitHub gates.",
+  "modules": ["core", "planning-bmad", "spec-council", "provisioning", "dashboard", "execution-loop", "testing", "backend-nestjs", "database-postgres", "github-ci"]
+}

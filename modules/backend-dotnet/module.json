@@ -1,0 +1,11 @@
+{
+  "id": "backend-dotnet",
+  "version": "0.1.0",
+  "description": ".NET 8 ASP.NET Core Web API profile.",
+  "bootstrap": false,
+  "skills": ["geki-backend-dotnet"],
+  "requires": ["execution-loop", "testing"],
+  "detect": ["*.sln", "*.csproj", "global.json"],
+  "architecture": {"runtime": ["dotnet"], "framework": ["aspnet-core", "aspnet-core-web-api"]},
+  "tags": ["backend", "dotnet"]
+}

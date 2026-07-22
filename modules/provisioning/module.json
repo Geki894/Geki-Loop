@@ -1,0 +1,9 @@
+{
+  "id": "provisioning",
+  "version": "0.1.0",
+  "description": "Architecture-driven module reconciliation.",
+  "bootstrap": true,
+  "skills": ["geki-sync"],
+  "requires": ["core", "spec-council"],
+  "tags": ["core"]
+}

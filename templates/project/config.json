@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "gekiVersion": "0.1.0",
+  "tools": ["codex", "antigravity"],
+  "language": {
+    "conversation": "vi",
+    "businessSpec": "vi",
+    "schemaKeys": "en",
+    "technicalTerms": "en"
+  },
+  "userProfile": {
+    "explanationLevel": "guided"
+  },
+  "branches": {
+    "integration": "coding",
+    "release": "main",
+    "autoMergeEpic": true,
+    "autoMergeRelease": false
+  },
+  "execution": {
+    "repairLimitPerFailureSignature": 3,
+    "allowParallel": true,
+    "requireExplicitRun": true,
+    "requireIndependentReview": true
+  },
+  "externalTesting": {
+    "realSandboxCalls": true,
+    "emailRecipientEnv": "GEKI_TEST_EMAIL",
+    "preserveDatabaseTestData": true,
+    "allowGlobalCleanup": false
+  },
+  "modules": []
+}

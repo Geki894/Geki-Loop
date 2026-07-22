@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Review"
+  short_description: "Perform independent spec and code quality review"
+  default_prompt: "Use $geki-review to review a story from a clean independent context."

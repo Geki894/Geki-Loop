@@ -1,0 +1,10 @@
+{
+  "id": "render",
+  "version": "0.1.0",
+  "description": "Render deployment guidance without making deploy a completion gate.",
+  "bootstrap": false,
+  "skills": [],
+  "requires": ["execution-loop"],
+  "architecture": {"deployment": ["render"]},
+  "tags": ["deployment", "render"]
+}

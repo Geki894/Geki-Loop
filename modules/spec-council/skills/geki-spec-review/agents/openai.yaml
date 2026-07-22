@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Spec Review"
+  short_description: "Run independent risk-based specification reviews"
+  default_prompt: "Use $geki-spec-review to pressure-test the current specification with independent lenses."

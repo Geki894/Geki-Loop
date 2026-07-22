@@ -1,0 +1,9 @@
+{
+  "id": "planning-bmad",
+  "version": "0.1.0",
+  "description": "Interactive BMAD-inspired planning customized by Geki.",
+  "bootstrap": true,
+  "skills": ["geki-spec", "geki-correct-course"],
+  "requires": ["core"],
+  "tags": ["planning"]
+}

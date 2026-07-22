@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "reviewerLens": "",
+  "severity": "blocking|major|minor|note",
+  "artifact": "",
+  "requirement": "",
+  "evidence": "",
+  "risk": "",
+  "recommendation": "",
+  "needsUserDecision": false
+}

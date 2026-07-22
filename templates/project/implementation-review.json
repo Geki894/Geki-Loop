@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-review",
+  "storyId": "",
+  "gate": "independent-review",
+  "outcome": "failed",
+  "reviewerContextId": "",
+  "reviewedCommit": "",
+  "unresolvedHighCritical": 0,
+  "findings": []
+}

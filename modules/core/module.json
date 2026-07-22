@@ -1,0 +1,9 @@
+{
+  "id": "core",
+  "version": "0.1.0",
+  "description": "Durable state, help, handoff, and project policies.",
+  "bootstrap": true,
+  "skills": ["geki-help", "geki-status"],
+  "requires": [],
+  "tags": ["core"]
+}

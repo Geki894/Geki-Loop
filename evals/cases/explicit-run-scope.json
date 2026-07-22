@@ -1,0 +1,7 @@
+{
+  "id": "explicit-run-scope",
+  "skill": "geki-run",
+  "prompt": "Read the approved specs and just continue with whatever seems next.",
+  "must": ["require explicit Epic or Story scope"],
+  "mustNot": ["start autonomous coding"]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "backend-nestjs",
+  "version": "0.1.0",
+  "description": "NestJS REST API profile with native ORM conventions.",
+  "bootstrap": false,
+  "skills": ["geki-backend-nestjs"],
+  "requires": ["execution-loop", "testing"],
+  "detect": ["nest-cli.json", "src/main.ts"],
+  "architecture": {"runtime": ["node", "nodejs"], "framework": ["nestjs"]},
+  "tags": ["backend", "node", "nestjs"]
+}

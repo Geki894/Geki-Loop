@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: ""
+epicId: ""
+title: ""
+status: draft
+specRevision: ""
+architectureRevision: ""
+dependencies: []
+acceptanceCriteria: []
+outOfScope: []
+apiContracts: []
+dataChanges: []
+uiStates: []
+testObligations: []
+requiredEnvironment: []
+openQuestions: []
+approval:
+  approvedAt: null
+  contentHash: null

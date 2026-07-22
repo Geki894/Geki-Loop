@@ -1,0 +1,5 @@
+{
+  "id": "dotnet-postgres-api",
+  "description": ".NET 8 REST API with PostgreSQL/Supabase and GitHub gates.",
+  "modules": ["core", "planning-bmad", "spec-council", "provisioning", "dashboard", "execution-loop", "testing", "backend-dotnet", "database-postgres", "github-ci"]
+}

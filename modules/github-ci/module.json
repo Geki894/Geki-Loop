@@ -1,0 +1,10 @@
+{
+  "id": "github-ci",
+  "version": "0.1.0",
+  "description": "Required GitHub Actions gates and protected-branch merge policy.",
+  "bootstrap": false,
+  "skills": [],
+  "requires": ["execution-loop", "testing"],
+  "installTemplates": ["github/geki-quality.yml"],
+  "tags": ["ci", "github"]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Readiness"
+  short_description: "Gate specifications before autonomous coding"
+  default_prompt: "Use $geki-readiness to verify that selected epics are safe to implement."

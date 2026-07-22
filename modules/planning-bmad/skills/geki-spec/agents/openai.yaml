@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Spec"
+  short_description: "Create durable product and architecture specifications"
+  default_prompt: "Use $geki-spec to guide product discovery and create durable specifications."

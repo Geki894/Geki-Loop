@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "status": "approved",
+  "backend": {"runtime": "dotnet", "framework": "aspnet-core-web-api", "targetFramework": "net8.0"},
+  "database": {"engine": "postgresql", "hosting": "docker", "orm": "ef-core", "driver": "npgsql", "migrationTool": "ef-core"},
+  "api": {"style": "rest", "contract": "openapi"},
+  "frontend": {"surface": null},
+  "deployment": {"provider": "render", "completionGate": false}
+}

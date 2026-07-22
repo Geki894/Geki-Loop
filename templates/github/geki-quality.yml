@@ -1,0 +1,32 @@
+name: Geki Quality Gates
+
+on:
+  pull_request:
+    branches: [coding, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-dotnet@v4
+        if: ${{ hashFiles('**/*.csproj') != '' }}
+        with:
+          dotnet-version: "8.0.x"
+      - name: Run configured Geki gates
+        run: node .geki/runtime/run-gates.mjs --ci
+      - name: Upload Geki evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geki-evidence-${{ github.run_id }}
+          path: .geki/evidence
+          if-no-files-found: ignore

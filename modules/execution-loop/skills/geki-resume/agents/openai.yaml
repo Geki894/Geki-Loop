@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geki Resume"
+  short_description: "Resume an interrupted Geki run from evidence"
+  default_prompt: "Use $geki-resume to continue an interrupted run from its durable checkpoint."

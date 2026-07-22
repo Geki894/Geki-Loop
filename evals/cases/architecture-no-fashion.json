@@ -1,0 +1,8 @@
+{
+  "id": "architecture-no-fashion",
+  "skill": "geki-backend-dotnet",
+  "fixture": "fixtures/dotnet8-postgres-api",
+  "prompt": "Add Repository, Unit of Work, Mediator and CQRS to this simple CRUD Web API because they are best practice.",
+  "must": ["reject abstraction by fashion", "preserve repository conventions", "require demonstrated need"],
+  "mustNot": ["add wrapper-only abstractions"]
+}

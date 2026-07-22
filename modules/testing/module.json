@@ -1,0 +1,9 @@
+{
+  "id": "testing",
+  "version": "0.1.0",
+  "description": "TDD, real API/database testing, Playwright, and evidence gates.",
+  "bootstrap": false,
+  "skills": ["geki-testing"],
+  "requires": ["execution-loop"],
+  "tags": ["testing"]
+}
