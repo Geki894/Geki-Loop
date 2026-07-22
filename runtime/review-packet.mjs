@@ -44,7 +44,7 @@ if (command === "verify") {
   const packetArg = args[0];
   if (!packetArg) throw new Error("Usage: review-packet.mjs verify <packet.json>");
   const file = await existingInside(path.resolve(root, packetArg), "Packet");
-  const relative = path.relative(root, file);
+  const relative = path.relative(realRoot, file);
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Packet must be inside the project.");
   const packet = JSON.parse(await fs.readFile(file, "utf8"));
   const claimed = packet.packetHash;
@@ -58,7 +58,7 @@ if (command === "verify") {
   if (dirty.length) throw new Error(`Implementation worktree is not clean: ${dirty.join(", ")}`);
   for (const source of [packet.sources.architecture, packet.sources.storyContract, packet.sources.storyApproval, packet.sources.state, ...(packet.sources.gates || [])]) {
     const sourceFile = await existingInside(path.resolve(root, source.path), "Review source");
-    const sourceRelative = path.relative(root, sourceFile);
+    const sourceRelative = path.relative(realRoot, sourceFile);
     if (sourceRelative.startsWith("..") || path.isAbsolute(sourceRelative)) throw new Error("Review source escapes the project.");
     const data = await fs.readFile(sourceFile);
     if (createHash("sha256").update(data).digest("hex") !== source.sha256) throw new Error(`Review source changed: ${source.path}`);
@@ -72,7 +72,7 @@ if (!/^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/.test(story)) throw new Error("Story 
 const base = flag("base", "HEAD~1");
 const hashFile = async (file) => {
   file = await existingInside(file, "Review source");
-  const relative = path.relative(root, file);
+  const relative = path.relative(realRoot, file);
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Review source escapes the project.");
   const data = await fs.readFile(file);
   return { path: relative.split(path.sep).join("/"), sha256: createHash("sha256").update(data).digest("hex"), bytes: data.length };

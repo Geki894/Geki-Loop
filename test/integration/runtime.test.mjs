@@ -328,3 +328,17 @@ test("spec review packet rejects Windows junctions that escape the project", { s
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Review output ancestor escapes/);
 });
+
+test("review packets accept a Windows project path reached through a junction alias", { skip: process.platform !== "win32" }, async () => {
+  const target = await project("junction-root");
+  const aliasParent = await fs.mkdtemp(path.join(os.tmpdir(), "geki-alias-parent-"));
+  const alias = path.join(aliasParent, "project-alias");
+  await fs.symlink(target, alias, "junction");
+  const artifact = path.join(alias, "_bmad-output", "prd.md");
+  await fs.mkdir(path.dirname(artifact), { recursive: true });
+  await fs.writeFile(artifact, "# PRD\n");
+  const aliasedRun = (script, args = []) => spawnSync(process.execPath, [path.join(alias, ".geki", "runtime", script), ...args], { cwd: alias, encoding: "utf8" });
+  const result = aliasedRun("spec-review-packet.mjs", ["--artifact", artifact, "--lens", "security"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(aliasedRun("spec-review-packet.mjs", ["verify", result.stdout.trim()]).status, 0);
+});
