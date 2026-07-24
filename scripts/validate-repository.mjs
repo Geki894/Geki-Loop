@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const version = "0.1.0";
 const failures = [];
 const fail = (message) => failures.push(message);
 async function read(relative) { return fs.readFile(path.join(root, relative), "utf8"); }
@@ -22,7 +21,8 @@ async function walk(directory) {
 }
 
 const pkg = await json("package.json");
-if (pkg.version !== version || pkg.name !== "geki") fail("package identity/version mismatch");
+const version = pkg.version;
+if (!/^\d+\.\d+\.\d+$/.test(version) || pkg.name !== "geki") fail("package identity/version mismatch");
 for (const item of ["presets/", "runtime/", "third-party-lock.json", "THIRD_PARTY_NOTICES.md"]) {
   if (!pkg.files.includes(item)) fail(`package files omits ${item}`);
 }

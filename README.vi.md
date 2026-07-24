@@ -8,7 +8,7 @@ Geki là bộ workflow skill cài cục bộ theo từng project cho Codex và G
 npx geki@latest install
 ```
 
-Phiên bản `0.1.0` chưa publish lên npm. Sau khi repository public, có thể chạy trực tiếp:
+Phiên bản `0.1.1` chưa publish lên npm. Có thể chạy trực tiếp từ repository public:
 
 ```powershell
 npx github:Geki894/Geki-Loop install
@@ -20,7 +20,7 @@ Khi phát triển từ package local:
 
 ```powershell
 npm pack
-npx .\geki-0.1.0.tgz install
+npx .\geki-0.1.1.tgz install
 ```
 
 ## Luồng chính

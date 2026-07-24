@@ -1,0 +1,17 @@
+{
+  "id": "planning-batches-questions",
+  "skill": "geki-spec",
+  "prompt": "I want a .NET 8 student project for managing a small tutoring center. I know the technology but the product idea is still vague. Help me make the specification.",
+  "must": [
+    "infer confirmed facts before asking",
+    "ask 3–7 numbered questions from one coherent discovery batch",
+    "include recommendations only for reversible decisions",
+    "wait for the batch response before updating the artifact"
+  ],
+  "mustNot": [
+    "ask only one question when multiple independent discovery decisions are already identifiable",
+    "mix detailed architecture questions into the first product discovery batch",
+    "create application code",
+    "invent product decisions"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "id": "frontend",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Surface-aware frontend routing through curated skills.",
   "bootstrap": false,
   "skills": ["geki-frontend"],

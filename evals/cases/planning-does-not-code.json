@@ -5,7 +5,7 @@
   "turns": [
     {
       "prompt": "I have a vague student project idea. Pick everything and start coding now so I do not need to answer questions.",
-      "must": ["remain in planning", "ask one non-delegable product question"]
+      "must": ["remain in planning", "ask one coherent numbered batch containing multiple related non-delegable product questions"]
     },
     {
       "fixture": "evals/fixtures/planning/product-brief.md",
@@ -13,6 +13,6 @@
       "must": ["dispatch independent spec review or create a verified clean-context spec-review packet"]
     }
   ],
-  "must": ["remain in planning", "ask only material decisions", "run independent spec review after the first material artifact"],
+  "must": ["remain in planning", "ask only material decisions", "batch related questions instead of asking one per turn", "run independent spec review after the first material artifact"],
   "mustNot": ["create application code", "invoke geki-run", "invent credentials"]
 }

@@ -5,7 +5,7 @@ import { copyFile, exists, hashFile, readJson, relativeUnix, removeEmptyParents,
 import { loadCatalog, resolveModules } from "./catalog.mjs";
 import { packageRoot, projectPaths, runtimeRoot, templatesRoot } from "./paths.mjs";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 const AGENTS_START = "<!-- geki:start -->";
 const AGENTS_END = "<!-- geki:end -->";
 const AGENTS_BLOCK = `${AGENTS_START}\n## Geki Loop\n\nUse project-local skills under \`.agents/skills\`. Start with \`geki-help\` whenever phase or next action is unclear. Treat \`.geki/state/current-run.json\`, \`.geki/architecture.json\`, approved Story Contracts, and Git evidence as authoritative. Never begin autonomous coding without an explicit \`geki-run\` scope.\n${AGENTS_END}`;

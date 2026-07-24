@@ -2,7 +2,7 @@
 
 Geki is a project-local engineering workflow for Codex and Google Antigravity. It keeps planning interactive, turns approved epics into an explicit autonomous execution loop, and requires evidence before completion.
 
-> Status: `0.1.0` is an initial, Windows-first release. Codex and Antigravity are the supported harnesses.
+> Status: `0.1.1` is a Windows-first release. Codex and Antigravity are the supported harnesses.
 
 ## Install
 
@@ -12,7 +12,7 @@ From the package source or a future npm release:
 npx geki@latest install
 ```
 
-Version `0.1.0` is not published to npm. Install the public repository directly:
+Version `0.1.1` is not published to npm. Install the public repository directly:
 
 ```powershell
 npx github:Geki894/Geki-Loop install
@@ -22,7 +22,7 @@ For a local package during development:
 
 ```powershell
 npm pack
-npx .\geki-0.1.0.tgz install
+npx .\geki-0.1.1.tgz install
 ```
 
 The installer bootstraps planning capabilities first. Architecture-dependent modules are proposed only after `geki-readiness` passes, then synchronized with `geki-sync` after one user confirmation.

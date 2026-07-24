@@ -12,7 +12,7 @@ Read [references/review-routing.md](references/review-routing.md). Select only l
 3. Require evidence and confidence for each finding.
 4. Use an integrator separate from reviewers to deduplicate and classify findings as `accepted`, `rejected`, `deferred`, or `needs-user-decision`.
 5. Automatically apply only high-confidence improvements that do not change product intent.
-6. Ask one focused user question for unresolved material decisions.
+6. Deduplicate all `needs-user-decision` findings, group related decisions, and ask them as one numbered batch of 3–7 questions. Include a concise recommendation where evidence supports one. If fewer than three material decisions remain, ask only those; ask a single question only when its answer controls which other questions are relevant.
 7. Re-run only affected lenses after revision; stop when remaining findings are low-value or speculative.
 
 Write findings under `.geki/findings/` and never claim zero risk merely because no issue was found.

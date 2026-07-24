@@ -1,6 +1,6 @@
 {
   "id": "execution-loop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Explicit Epic execution, clean review, repair, and verification loops.",
   "bootstrap": false,
   "skills": ["geki-run", "geki-resume", "geki-review", "geki-verify"],

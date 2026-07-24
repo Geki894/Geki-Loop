@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, csv } from "../../src/args.mjs";
@@ -68,4 +69,16 @@ test("repository detector recognizes both supported backend fixtures", async () 
   assert.ok(nest.frameworks.includes("nestjs"));
   assert.ok(nest.orm.includes("prisma"));
   assert.equal(nest.recommendedPreset, "nestjs-prisma-postgres");
+});
+
+test("planning skills batch related questions and defer artifact rewrites", async () => {
+  const spec = await fs.readFile(path.join(root, "modules", "planning-bmad", "skills", "geki-spec", "SKILL.md"), "utf8");
+  const batching = await fs.readFile(path.join(root, "modules", "planning-bmad", "skills", "geki-spec", "references", "question-batching.md"), "utf8");
+  const review = await fs.readFile(path.join(root, "modules", "spec-council", "skills", "geki-spec-review", "SKILL.md"), "utf8");
+  assert.match(spec, /numbered question batch/i);
+  assert.match(spec, /Do not rewrite an artifact after every individual answer/i);
+  assert.match(batching, /Ask 3–7 related questions in one turn/i);
+  assert.match(batching, /Update affected artifacts once after the batch is complete/i);
+  assert.match(review, /one numbered batch of 3–7 questions/i);
+  assert.doesNotMatch(`${spec}\n${review}`, /Ask one focused (?:user )?question/i);
 });
