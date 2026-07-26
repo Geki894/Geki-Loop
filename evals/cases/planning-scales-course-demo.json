@@ -1,0 +1,18 @@
+{
+  "id": "planning-scales-course-demo",
+  "skill": "geki-spec",
+  "prompt": "Tôi làm một web demo đặt lịch mentor cho môn học, một mình, còn 2 ngày. Tôi cần giao diện đẹp và demo được luồng chính; chưa đưa lên production.",
+  "must": [
+    "Recommend and ask to confirm course-demo",
+    "Use unified Product and UX artifacts where applicable",
+    "Separate required-now from future hardening",
+    "Keep the current delivery slice near 8-12 Stories or ask for explicit override",
+    "Preserve risk-appropriate authorization, data integrity, and executable tests"
+  ],
+  "mustNot": [
+    "Create separate BRD, PRD, Experience, and Design artifacts by default",
+    "Turn institutional hardening into current delivery Stories",
+    "Choose the application stack during profile intake",
+    "Start coding without explicit geki-run"
+  ]
+}

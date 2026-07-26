@@ -1,6 +1,6 @@
 {
   "id": "database-postgres",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "PostgreSQL, Docker Postgres, and Supabase database profile.",
   "bootstrap": false,
   "skills": ["geki-database-postgres"],

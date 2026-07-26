@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "current-delivery",
+  "status": "draft",
+  "profile": null,
+  "goal": "",
+  "storyIds": [],
+  "nextCapabilities": [],
+  "futureCapabilities": [],
+  "approvedAt": null
+}

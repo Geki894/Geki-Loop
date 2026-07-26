@@ -1,4 +1,4 @@
 interface:
   display_name: "Geki Dashboard"
   short_description: "Launch the read-only local progress dashboard"
-  default_prompt: "Use $geki-dashboard to view local run and GitHub progress without mutating it."
+  default_prompt: "Use $geki-dashboard to view planning profile, delivery scope, local run, and GitHub progress without mutating it."

@@ -1,6 +1,6 @@
 {
   "name": "geki",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A project-local, evidence-driven engineering loop for Codex and Antigravity.",
   "type": "module",
   "bin": {

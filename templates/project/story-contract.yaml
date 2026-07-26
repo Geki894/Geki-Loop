@@ -3,17 +3,25 @@ id: ""
 epicId: ""
 title: ""
 status: draft
-specRevision: ""
-architectureRevision: ""
+goal: ""
 dependencies: []
+requirementIds: []
 acceptanceCriteria: []
 outOfScope: []
+architectureConstraints: []
+affectedSurfaces: []
+ownedPaths: []
+ownedSchemas: []
+parallelSafe: false
 apiContracts: []
 dataChanges: []
+migrationRequired: false
 uiStates: []
 testObligations: []
+producesGates: []
 requiredEnvironment: []
 openQuestions: []
+sourceArtifacts: []
 approval:
   approvedAt: null
   contentHash: null

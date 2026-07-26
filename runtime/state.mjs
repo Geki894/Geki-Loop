@@ -223,6 +223,14 @@ if (command === "status") {
   const state = await loadState();
   if (state.phase !== "ready") throw new Error(`Execution can start only from ready; current phase is ${state.phase}.`);
   const contracts = await scopeContracts(epics, stories);
+  const specificationValidation = spawnSync(process.execPath, [path.join(root, ".geki", "runtime", "spec-validator.mjs"), "--stories", contracts.stories.join(",")], { cwd: root, encoding: "utf8" });
+  if (specificationValidation.status !== 0) throw new Error(`Static specification validation failed before execution:\n${specificationValidation.stdout || specificationValidation.stderr}`);
+  const deliverySlice = await readJson(path.join(root, ".geki", "planning", "delivery-slice.json"), null);
+  if (deliverySlice?.status === "approved") {
+    const approvedStories = new Set((deliverySlice.storyIds || []).map(String));
+    const outside = contracts.stories.filter((story) => !approvedStories.has(story));
+    if (outside.length) throw new Error(`Execution scope is outside the approved current delivery slice: ${outside.join(", ")}`);
+  }
   const firstStory = contracts.stories[0] || null;
   const storyObligations = Object.fromEntries(contracts.stories.map((story) => [story, [...new Set([...(contracts.storyObligations[story] || []), ...requestedObligations])]]));
   const started = await transition("executing", "running", {

@@ -38,8 +38,8 @@ export function validateArchitecture(architecture) {
   if ((runtime && !framework) || (!runtime && framework)) throw new Error("backend.runtime and backend.framework must be selected together.");
   if (runtime && !["dotnet", "node", "nodejs"].includes(runtime)) throw new Error(`Unsupported backend.runtime '${runtime}'. Use a documented Architecture enum.`);
   if (framework && !["aspnet-core", "aspnet-core-web-api", "nestjs"].includes(framework)) throw new Error(`Unsupported backend.framework '${framework}'.`);
-  if (runtime === "dotnet" && !framework.startsWith("aspnet")) throw new Error(".NET runtime requires an ASP.NET Core framework in v0.1.0.");
-  if (["node", "nodejs"].includes(runtime) && framework !== "nestjs") throw new Error("Node backend runtime requires NestJS in v0.1.0.");
+  if (runtime === "dotnet" && !framework.startsWith("aspnet")) throw new Error(".NET runtime requires an ASP.NET Core framework.");
+  if (["node", "nodejs"].includes(runtime) && framework !== "nestjs") throw new Error("Node backend runtime requires NestJS.");
   if (database && !["postgres", "postgresql", "sqlserver", "sql-server", "mssql"].includes(database)) throw new Error(`Unsupported database.engine '${database}'. Use postgresql or sqlserver.`);
   if (approved && database && (!hosting || !orm || !driver || !migrationTool)) throw new Error("Approved database Architecture requires hosting, orm, driver, and migrationTool.");
   if (!database && (hosting || orm || driver || migrationTool)) throw new Error("Database hosting/ORM/driver/migrationTool requires database.engine.");

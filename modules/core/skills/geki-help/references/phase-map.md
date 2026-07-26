@@ -2,7 +2,7 @@
 
 | Phase | Meaning | Recommended action |
 | --- | --- | --- |
-| `planning` | Product/spec work remains interactive | Continue `geki-spec` |
+| `planning` | Product/spec work remains interactive; use `.geki/state/planning.json.stage` for the exact milestone | Continue `geki-spec` at that stage |
 | `spec-review` | Independent reviewers are evaluating artifacts | Continue `geki-spec-review` |
 | `readiness` | Cross-artifact gate is running | Resolve findings through `geki-readiness` |
 | `ready` | Planning is approved | Confirm module sync, then let the user explicitly invoke `geki-run` |

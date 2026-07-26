@@ -1,6 +1,8 @@
 schema_version: 1
 status: idle
 phase: planning
+planning_profile: null
+planning_stage: intake
 story: null
 branch: null
 checkpoint_commit: null

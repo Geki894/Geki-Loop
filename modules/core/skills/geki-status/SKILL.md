@@ -1,15 +1,16 @@
 ---
 name: geki-status
-description: Produce an evidence-backed status snapshot for a Geki project or run. Use when the user asks for progress, current Epic/Story, gate results, repair attempts, GitHub checks, or cross-agent handoff status.
+description: Produce an evidence-backed planning and execution status snapshot for a Geki project or run. Use when the user asks for planning stage, delivery scope, current Epic/Story, gate results, repair attempts, GitHub checks, or cross-agent handoff status.
 ---
 
 # Geki Status
 
-Read state, events, lock, architecture, handoff, Git, and available GitHub status. Do not change them.
+Read planning state, execution state, current delivery slice, finding registry, events, lock, architecture, handoff, Git, and available GitHub status. Do not change them.
 
 Report:
 
-- Phase and run status.
+- Delivery profile, planning stage, artifact status, review round, pending decisions, and next action.
+- Current delivery slice, open findings by severity, execution phase, and run status.
 - Selected Epic/Story scope and current gate.
 - Current branch and whether the worktree is clean.
 - Passed, failed, and missing evidence.

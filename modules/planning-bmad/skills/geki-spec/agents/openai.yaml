@@ -1,4 +1,4 @@
 interface:
   display_name: "Geki Spec"
-  short_description: "Create durable product and architecture specifications"
-  default_prompt: "Use $geki-spec to guide product discovery and create durable specifications."
+  short_description: "Create adaptive specifications and JIT delivery contracts"
+  default_prompt: "Use $geki-spec to confirm the delivery profile, guide batched discovery, and prepare only the next approved delivery slice."

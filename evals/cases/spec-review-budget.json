@@ -1,0 +1,18 @@
+{
+  "id": "spec-review-budget",
+  "skill": "geki-spec-review",
+  "prompt": "The Architecture baseline review produced four findings. The artifact was revised and I want a closure review.",
+  "must": [
+    "Run static validation first",
+    "Use delta mode and the prior finding IDs",
+    "Check changed surfaces and direct regressions only",
+    "Record stable finding dispositions",
+    "Allow a third round only for remaining critical or high findings"
+  ],
+  "mustNot": [
+    "Introduce a new review rubric",
+    "Restart a full baseline review",
+    "Silently ignore new medium findings",
+    "Continue unlimited review rounds"
+  ]
+}

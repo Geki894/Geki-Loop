@@ -1,4 +1,4 @@
-# Geki 0.1.0 Acceptance Matrix
+# Geki 0.2.0 Acceptance Matrix
 
 | Requirement | Evidence |
 | --- | --- |
@@ -6,7 +6,11 @@
 | Codex and Antigravity | Installed `.agents/skills`, root bootstrap, rules, and workflows validate |
 | Interactive module selection | Prompt unit tests and non-interactive equivalent flags |
 | Planning remains interactive | `geki-spec` invariant forbids coding and branches |
-| Spec Council | Risk router, independent review packet, structured findings |
+| Adaptive project scale | Durable course-demo, startup-mvp, institutional-production, and custom planning profiles |
+| JIT Story contracts | Current delivery slice and 1–3 Story contract policy keep future backlog unelaborated |
+| Static spec validation | Integration test proves dependency, requirement ownership, and parallel ownership failures |
+| Spec Council | Risk router, stable finding registry, bounded baseline/delta review packets |
+| Durable planning progress | Profile, stage, artifact status, review checkpoint, decisions, and next action survive agent changes |
 | Readiness and automatic sync proposal | State transition and architecture module resolver tests |
 | Explicit autonomous run | Runtime rejects execution without explicit scope and readiness |
 | Story/Epic lifecycle isolation | Two-Story integration test rejects cross-Story evidence, requires verified commit integration, then verifies GitHub proof at Epic level |

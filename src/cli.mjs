@@ -11,7 +11,7 @@ import { installProject, rollbackProject, uninstallProject } from "./installer.m
 import { projectPaths } from "./paths.mjs";
 import { checkbox, confirm } from "./prompt.mjs";
 
-const help = `Geki 0.1.1 — project-local engineering loop
+const help = `Geki 0.2.0 — project-local engineering loop
 
 Usage:
   geki install [--target PATH] [--tools codex,antigravity] [--modules IDS] [--yes]
@@ -66,7 +66,7 @@ async function install(args) {
   if (invalid.length) throw new Error(`Execution modules cannot be installed before approved Architecture: ${invalid.join(", ")}`);
   if (!modules.includes("core")) modules.unshift("core");
   const result = await installProject({ target, requestedModules: modules, tools, force: Boolean(args.flags.force) });
-  console.log(`\nGeki ${"0.1.1"} installed in ${target}`);
+  console.log(`\nGeki ${"0.2.0"} installed in ${target}`);
   console.log(`Modules: ${result.moduleIds.join(", ")}`);
   console.log(`Managed files: ${result.files}`);
   console.log("Next: invoke geki-help in Codex or Antigravity, then run geki-spec.");
@@ -139,9 +139,12 @@ async function showDoctor(args) {
 
 async function showStatus(args) {
   const paths = projectPaths(targetOf(args.flags));
-  const state = await readJson(paths.state, null);
-  if (!state) throw new Error("Geki state not found.");
-  console.log(JSON.stringify(state, null, 2));
+  const [execution, planning] = await Promise.all([
+    readJson(paths.state, null),
+    readJson(paths.planningState, null)
+  ]);
+  if (!execution && !planning) throw new Error("Geki state not found.");
+  console.log(JSON.stringify({ planning, execution }, null, 2));
 }
 
 async function dashboard(args) {

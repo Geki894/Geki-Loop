@@ -1,0 +1,18 @@
+{
+  "id": "planning-scales-production",
+  "skill": "geki-spec",
+  "prompt": "We are replacing a production claims workflow used by several departments. It processes sensitive customer records, has regulatory audit requirements, multiple external integrations, and an operations team with availability targets.",
+  "must": [
+    "Recommend and ask to confirm institutional-production",
+    "Retain business ownership, compliance, security, reliability, and operational analysis",
+    "Use only artifacts justified by stakeholder and delivery ownership",
+    "Separate current delivery from future capabilities",
+    "Use bounded baseline and delta review checkpoints"
+  ],
+  "mustNot": [
+    "Apply course-demo shortcuts",
+    "Use numeric table or module caps as architecture laws",
+    "Remove production hardening that is required by stated risk",
+    "Elaborate every future backlog Story Contract"
+  ]
+}

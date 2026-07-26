@@ -18,6 +18,10 @@ test("project-local install and architecture sync install both harness adapters"
   await fs.access(path.join(target, ".agents", "skills", "geki-help", "SKILL.md"));
   await fs.access(path.join(target, ".agents", "rules", "geki.md"));
   await fs.access(path.join(target, ".agents", "workflows", "geki-help.md"));
+  await fs.access(path.join(target, ".geki", "state", "planning.json"));
+  await fs.access(path.join(target, ".geki", "planning", "decisions.json"));
+  await fs.access(path.join(target, ".geki", "planning", "delivery-slice.json"));
+  await fs.access(path.join(target, ".geki", "findings", "registry.json"));
   const architecture = await readJson(path.join(root, "fixtures", "dotnet8-postgres-api", "architecture.approved.json"));
   await fs.writeFile(path.join(target, ".geki", "architecture.json"), `${JSON.stringify(architecture, null, 2)}\n`);
   const sync = spawnSync(process.execPath, [path.join(root, "bin", "geki.js"), "sync", "--target", target, "--yes"], { encoding: "utf8" });
@@ -37,6 +41,42 @@ test("update preflight refuses a user-modified managed skill before copying", as
   await fs.appendFile(modified, "\nuser modification\n");
   await assert.rejects(() => installProject({ target, requestedModules: bootstrap, tools: ["codex"] }), /user-modified/);
   assert.equal(await fs.readFile(sentinel, "utf8"), before);
+});
+
+test("0.2 upgrade preserves in-progress specifications and backfills adaptive planning state", async () => {
+  const target = await temp("adaptive-upgrade");
+  await installProject({ target, requestedModules: bootstrap, tools: ["codex", "antigravity"] });
+  const productSpec = path.join(target, "_bmad-output", "prd.md");
+  await fs.mkdir(path.dirname(productSpec), { recursive: true });
+  await fs.writeFile(productSpec, "# In-progress product specification\n");
+  const architectureFile = path.join(target, ".geki", "architecture.json");
+  const executionFile = path.join(target, ".geki", "state", "current-run.json");
+  const architecture = await readJson(architectureFile);
+  architecture.status = "draft";
+  architecture.project = "preserve-me";
+  await fs.writeFile(architectureFile, `${JSON.stringify(architecture, null, 2)}\n`);
+  const execution = await readJson(executionFile);
+  execution.status = "in-progress-spec";
+  await fs.writeFile(executionFile, `${JSON.stringify(execution, null, 2)}\n`);
+  for (const file of [
+    path.join(target, ".geki", "state", "planning.json"),
+    path.join(target, ".geki", "planning", "decisions.json"),
+    path.join(target, ".geki", "planning", "delivery-slice.json"),
+    path.join(target, ".geki", "findings", "registry.json")
+  ]) await fs.rm(file);
+  const configFile = path.join(target, ".geki", "config.json");
+  const config = await readJson(configFile);
+  delete config.planning;
+  config.gekiVersion = "0.1.1";
+  await fs.writeFile(configFile, `${JSON.stringify(config, null, 2)}\n`);
+
+  await installProject({ target, requestedModules: bootstrap, tools: ["codex", "antigravity"] });
+
+  assert.equal(await fs.readFile(productSpec, "utf8"), "# In-progress product specification\n");
+  assert.equal((await readJson(architectureFile)).project, "preserve-me");
+  assert.equal((await readJson(executionFile)).status, "in-progress-spec");
+  assert.equal((await readJson(path.join(target, ".geki", "state", "planning.json"))).stage, "intake");
+  assert.equal((await readJson(configFile)).planning.justInTimeStoryContracts, true);
 });
 
 test("uninstall removes owned files and preserves modified files", async () => {

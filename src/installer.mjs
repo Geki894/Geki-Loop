@@ -5,10 +5,10 @@ import { copyFile, exists, hashFile, readJson, relativeUnix, removeEmptyParents,
 import { loadCatalog, resolveModules } from "./catalog.mjs";
 import { packageRoot, projectPaths, runtimeRoot, templatesRoot } from "./paths.mjs";
 
-const VERSION = "0.1.1";
+const VERSION = "0.2.0";
 const AGENTS_START = "<!-- geki:start -->";
 const AGENTS_END = "<!-- geki:end -->";
-const AGENTS_BLOCK = `${AGENTS_START}\n## Geki Loop\n\nUse project-local skills under \`.agents/skills\`. Start with \`geki-help\` whenever phase or next action is unclear. Treat \`.geki/state/current-run.json\`, \`.geki/architecture.json\`, approved Story Contracts, and Git evidence as authoritative. Never begin autonomous coding without an explicit \`geki-run\` scope.\n${AGENTS_END}`;
+const AGENTS_BLOCK = `${AGENTS_START}\n## Geki Loop\n\nUse project-local skills under \`.agents/skills\`. Start with \`geki-help\` whenever phase or next action is unclear. Treat \`.geki/state/planning.json\`, \`.geki/state/current-run.json\`, \`.geki/architecture.json\`, the current delivery slice, approved Story Contracts, and Git evidence as authoritative. Never begin autonomous coding without an explicit \`geki-run\` scope.\n${AGENTS_END}`;
 
 async function createSnapshot(paths, candidates) {
   const id = new Date().toISOString().replace(/[:.]/g, "-");
@@ -83,9 +83,11 @@ async function initializeProjectFiles(paths, tools, moduleIds) {
     await writeJson(paths.config, config);
   } else {
     const config = await readJson(paths.config);
+    const defaults = await readJson(path.join(templatesRoot, "project", "config.json"));
     config.gekiVersion = VERSION;
     config.tools = tools;
     config.modules = moduleIds;
+    config.planning = { ...defaults.planning, ...(config.planning || {}) };
     await writeJson(paths.config, config);
   }
   if (!(await exists(paths.architecture))) await copyFile(path.join(templatesRoot, "project", "architecture.json"), paths.architecture);
@@ -94,6 +96,14 @@ async function initializeProjectFiles(paths, tools, moduleIds) {
     state.updatedAt = new Date().toISOString();
     await writeJson(paths.state, state);
   }
+  if (!(await exists(paths.planningState))) {
+    const planning = await readJson(path.join(templatesRoot, "project", "planning.json"));
+    planning.updatedAt = new Date().toISOString();
+    await writeJson(paths.planningState, planning);
+  }
+  if (!(await exists(paths.decisions))) await copyFile(path.join(templatesRoot, "project", "decisions.json"), paths.decisions);
+  if (!(await exists(paths.deliverySlice))) await copyFile(path.join(templatesRoot, "project", "delivery-slice.json"), paths.deliverySlice);
+  if (!(await exists(paths.findingRegistry))) await copyFile(path.join(templatesRoot, "project", "finding-registry.json"), paths.findingRegistry);
   if (!(await exists(paths.events))) {
     await fs.mkdir(path.dirname(paths.events), { recursive: true });
     await fs.writeFile(paths.events, `${JSON.stringify({ id: randomUUID(), type: "GEKI_INSTALLED", at: new Date().toISOString(), version: VERSION })}\n`, "utf8");
@@ -118,7 +128,20 @@ export async function installProject({ target, requestedModules, tools, force = 
   const modulePlan = await collectModuleFiles(catalog, moduleIds);
   const plan = [...modulePlan, ...await collectRuntimeFiles(), ...await collectDistributionFiles(), ...await staticPlan(moduleIds, tools)];
   const plannedPaths = plan.map((entry) => relativeUnix(paths.root, path.join(paths.root, entry.destination)));
-  const foundational = ["AGENTS.md", ".geki/config.json", ".geki/lock.json", ".geki/manifest.json", ".geki/architecture.json", ".geki/state/current-run.json", ".geki/state/events.jsonl", ".geki/handoff/current.yaml"];
+  const foundational = [
+    "AGENTS.md",
+    ".geki/config.json",
+    ".geki/lock.json",
+    ".geki/manifest.json",
+    ".geki/architecture.json",
+    ".geki/state/current-run.json",
+    ".geki/state/planning.json",
+    ".geki/state/events.jsonl",
+    ".geki/planning/decisions.json",
+    ".geki/planning/delivery-slice.json",
+    ".geki/findings/registry.json",
+    ".geki/handoff/current.yaml"
+  ];
   const removalEntries = removeUnselected ? existingManifest.files.filter((entry) => entry.module && !moduleIds.includes(entry.module) && entry.kind !== "shared") : [];
   for (const entry of plan) {
     const destination = path.join(paths.root, entry.destination);
@@ -155,7 +178,16 @@ export async function installProject({ target, requestedModules, tools, force = 
   nextFiles.push({ path: "AGENTS.md", hash: agentsHash, module: "core", kind: "shared" });
   const configHash = await hashFile(paths.config);
   nextFiles.push({ path: ".geki/config.json", hash: configHash, module: "core", kind: "config" });
-  for (const [file, kind] of [[paths.architecture, "architecture"], [paths.state, "state"], [paths.events, "events"], [paths.handoff, "handoff"]]) {
+  for (const [file, kind] of [
+    [paths.architecture, "architecture"],
+    [paths.state, "state"],
+    [paths.planningState, "planning-state"],
+    [paths.events, "events"],
+    [paths.decisions, "decisions"],
+    [paths.deliverySlice, "delivery-slice"],
+    [paths.findingRegistry, "finding-registry"],
+    [paths.handoff, "handoff"]
+  ]) {
     nextFiles.push({ path: relativeUnix(paths.root, file), hash: await hashFile(file), module: "core", kind });
   }
   const modules = Object.fromEntries(moduleIds.map((id) => [id, { version: catalog.modules.get(id).version }]));

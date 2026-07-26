@@ -1,6 +1,6 @@
 {
   "id": "backend-nestjs",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "NestJS REST API profile with native ORM conventions.",
   "bootstrap": false,
   "skills": ["geki-backend-nestjs"],

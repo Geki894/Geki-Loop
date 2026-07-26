@@ -1,0 +1,18 @@
+{
+  "id": "planning-jit-story-contracts",
+  "skill": "geki-spec",
+  "prompt": "Architecture is approved. The backlog has 42 candidate Stories, but I want to implement login, create booking, and confirm booking first.",
+  "must": [
+    "Put only the three selected Stories in current-delivery",
+    "Keep remaining work at next or future capability/title level",
+    "Create canonical YAML contracts only for the selected Stories",
+    "Run static spec validation before semantic review",
+    "Recommend an explicit geki-run --stories scope"
+  ],
+  "mustNot": [
+    "Generate contracts for all 42 Stories",
+    "Maintain duplicate hand-edited Markdown and YAML Story sources",
+    "Start geki-run automatically",
+    "Treat future backlog as current Epic completion work"
+  ]
+}

@@ -5,7 +5,9 @@ description: Decide whether selected Epics and Stories are safe for autonomous i
 
 # Geki Readiness
 
-Read [references/readiness-gates.md](references/readiness-gates.md) and inspect the selected scope plus every upstream artifact it references.
+Read [references/readiness-gates.md](references/readiness-gates.md) and inspect only `.geki/planning/delivery-slice.json`, its selected Story Contracts, and their upstream artifacts. Future capability titles do not block current readiness.
+
+Run `node .geki/runtime/spec-validator.mjs` before semantic readiness. Any deterministic error is `FAIL`; warnings require an explicit bounded disposition.
 
 Return exactly one decision: `PASS`, `CONCERNS`, or `FAIL`.
 

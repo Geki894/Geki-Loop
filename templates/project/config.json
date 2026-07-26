@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gekiVersion": "0.1.0",
+  "gekiVersion": "0.2.0",
   "tools": ["codex", "antigravity"],
   "language": {
     "conversation": "vi",
@@ -10,6 +10,12 @@
   },
   "userProfile": {
     "explanationLevel": "guided"
+  },
+  "planning": {
+    "requireProfileConfirmation": true,
+    "adaptiveArtifacts": true,
+    "justInTimeStoryContracts": true,
+    "reviewMaxRounds": 2
   },
   "branches": {
     "integration": "coding",

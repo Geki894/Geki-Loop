@@ -24,8 +24,12 @@ The agent reasons and writes application code. The runtime never pretends that a
 .geki/lock.json                 Installed module versions and hashes
 .geki/manifest.json             Geki-owned files and backups
 .geki/architecture.json         Machine-readable approved architecture
+.geki/state/planning.json       Durable planning profile, stage, artifacts, and review checkpoints
 .geki/state/current-run.json    Durable execution state
 .geki/state/events.jsonl        Append-only event stream
+.geki/planning/decisions.json   Stable cross-artifact decision ledger
+.geki/planning/delivery-slice.json  Current, next, and future delivery boundary
+.geki/findings/registry.json    Deduplicated review findings and closure history
 .geki/handoff/current.yaml      Cross-agent checkpoint summary
 .geki/runtime/                  Dependency-free deterministic runtime
 .geki/review/                   Hash-bound clean-context review packets
@@ -35,6 +39,10 @@ _bmad-output/                   Human-readable planning artifacts
 
 ## State invariants
 
+- Planning depth follows a confirmed delivery profile; the profile never weakens execution gates.
+- Only current-delivery Stories receive canonical contracts; next/future capabilities remain unelaborated.
+- Static contract and graph validation passes before semantic review and readiness.
+- Planning review has one baseline and one delta closure; round three requires an unresolved critical/high finding.
 - Planning cannot transition directly to executing.
 - Readiness must pass before provisioning execution modules.
 - Only explicit `geki-run` intent may create an execution run.
@@ -50,7 +58,13 @@ Modules are composable capabilities, not architecture decisions. Presets only pr
 
 ## Cross-agent review
 
-Codex uses an independent subagent when available. A harness without subagents produces a hash-bound packet and requires a clean session. Planning artifacts resume through `geki-spec-review current`; implementations resume through `geki-review current`. Review packets bind the current Architecture, Story Contract, state, diff base, and evidence hashes rather than trusting the author's summary.
+Codex uses an independent subagent when available. A harness without subagents produces a hash-bound packet and requires a clean session. Planning artifacts resume through `geki-spec-review current`; implementations resume through `geki-review current`. Planning packets bind the artifact hash, checkpoint, fixed lens, review round, mode, and prior finding IDs. Implementation packets bind the current Architecture, Story Contract, state, diff base, and evidence hashes rather than trusting the author's summary.
+
+## Adaptive planning
+
+`course-demo`, `startup-mvp`, `institutional-production`, and `custom` profiles select an artifact policy and soft delivery guardrail. They do not select frameworks or databases. Product and UX documents may be unified for small scopes; production scopes may split them when ownership, compliance, or operational complexity justifies the split.
+
+Story/Epic YAML/JSON is canonical only for the selected execution slice. Human Product, UX, and Architecture documents remain Markdown. The decision ledger prevents repeated business-rule prose from becoming independent sources of truth.
 
 ## Git flow
 

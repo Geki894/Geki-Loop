@@ -82,3 +82,18 @@ test("planning skills batch related questions and defer artifact rewrites", asyn
   assert.match(review, /one numbered batch of 3–7 questions/i);
   assert.doesNotMatch(`${spec}\n${review}`, /Ask one focused (?:user )?question/i);
 });
+
+test("adaptive planning uses profiles, bounded review, and JIT contracts", async () => {
+  const spec = await fs.readFile(path.join(root, "modules", "planning-bmad", "skills", "geki-spec", "SKILL.md"), "utf8");
+  const profiles = await fs.readFile(path.join(root, "modules", "planning-bmad", "skills", "geki-spec", "references", "planning-profiles.md"), "utf8");
+  const delivery = await fs.readFile(path.join(root, "modules", "planning-bmad", "skills", "geki-spec", "references", "delivery-policy.md"), "utf8");
+  const review = await fs.readFile(path.join(root, "modules", "spec-council", "skills", "geki-spec-review", "SKILL.md"), "utf8");
+  assert.match(profiles, /course-demo/);
+  assert.match(profiles, /startup-mvp/);
+  assert.match(profiles, /institutional-production/);
+  assert.match(spec, /only the next 1–3 machine-readable Story Contracts/);
+  assert.match(delivery, /current-delivery/);
+  assert.match(review, /one baseline round and one delta closure round/i);
+  assert.match(review, /Round three only when round two still has open critical\/high/i);
+  assert.doesNotMatch(review, /ignore new medium/i);
+});

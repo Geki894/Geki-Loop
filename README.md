@@ -2,7 +2,7 @@
 
 Geki is a project-local engineering workflow for Codex and Google Antigravity. It keeps planning interactive, turns approved epics into an explicit autonomous execution loop, and requires evidence before completion.
 
-> Status: `0.1.1` is a Windows-first release. Codex and Antigravity are the supported harnesses.
+> Status: `0.2.0` is a Windows-first release. Codex and Antigravity are the supported harnesses.
 
 ## Install
 
@@ -12,7 +12,7 @@ From the package source or a future npm release:
 npx geki@latest install
 ```
 
-Version `0.1.1` is not published to npm. Install the public repository directly:
+Version `0.2.0` is not published to npm. Install the public repository directly:
 
 ```powershell
 npx github:Geki894/Geki-Loop install
@@ -22,7 +22,7 @@ For a local package during development:
 
 ```powershell
 npm pack
-npx .\geki-0.1.1.tgz install
+npx .\geki-0.2.0.tgz install
 ```
 
 The installer bootstraps planning capabilities first. Architecture-dependent modules are proposed only after `geki-readiness` passes, then synchronized with `geki-sync` after one user confirmation.
@@ -33,18 +33,23 @@ The installer bootstraps planning capabilities first. Architecture-dependent mod
 
 ```text
 geki-spec
-  -> interactive product, UX, and architecture planning
-  -> independent Spec Council review
-  -> geki-readiness
+  -> confirm course-demo, startup-mvp, institutional-production, or custom profile
+  -> batched discovery and an adaptive Product/UX document set
+  -> Architecture with required-now and future-hardening boundaries
+  -> static validation, one baseline review, and one delta closure
+  -> select current delivery and elaborate only the next 1-3 Story Contracts
+  -> geki-readiness for the selected slice
   -> automatic sync proposal
 
-geki-run epic 1,2,3
+geki-run stories 1.1,1.2,1.3
   -> the user explicitly starts the autonomous loop
   -> implementation, build, review, tests, GitHub checks
   -> auto-merge the epic PR into coding
 ```
 
 Use `geki-help` whenever the next action is unclear. It reads durable state from the repository instead of relying on chat history.
+
+Planning profiles adjust document depth and scope guardrails, not engineering correctness. Course demos avoid enterprise artifact ceremony; production products keep risk-appropriate business, security, reliability, and operational analysis. Build, test, independent review, API/Playwright obligations, and GitHub evidence remain driven by the actual selected surfaces.
 
 Before the first execution run, protect `coding` and `main` in GitHub and make the installed Geki quality workflow a required check. The GitHub CLI (`gh`) must be authenticated for Epic PR automation; `geki doctor` reports this prerequisite after the GitHub module is synchronized.
 
@@ -73,6 +78,8 @@ Business decisions and user-facing specifications may be Vietnamese. File names,
 - `geki-run` requires explicit user invocation.
 - The same failure signature is repaired at most three times.
 - Material architecture gaps reopen the specification and invalidate affected downstream artifacts.
+- Static validation runs before semantic review; planning review is bounded to a baseline and delta closure, with a third round only for unresolved critical/high findings.
+- Full backlogs remain at capability/title level; only the current delivery slice receives executable Story Contracts.
 - Story evidence, repair attempts, and contract hashes are isolated per Story; an Epic cannot complete until every Story commit is integrated and its required GitHub checks pass.
 - Destructive database reset, production deployment, and merge into `main` require explicit user authority.
 - No telemetry is collected.

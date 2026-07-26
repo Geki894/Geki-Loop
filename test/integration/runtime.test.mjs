@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { installProject } from "../../src/installer.mjs";
 
@@ -17,8 +18,46 @@ async function project(name) {
 const run = (target, script, args = []) => spawnSync(process.execPath, [path.join(target, ".geki", "runtime", script), ...args], { cwd: target, encoding: "utf8" });
 async function approveStory(target, id, obligations = []) {
   const file = path.join(target, ".geki", "spec", "stories", `${id}.yaml`);
+  const source = path.join(target, "_bmad-output", "PRODUCT-SPEC.md");
   await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, `id: "${id}"\nstatus: approved\ntestObligations: [${obligations.map((item) => `"${item}"`).join(", ")}]\n`);
+  await fs.mkdir(path.dirname(source), { recursive: true });
+  await fs.writeFile(source, "# Test Product Spec\n");
+  const sourceHash = createHash("sha256").update(await fs.readFile(source)).digest("hex");
+  const gates = [...new Set(["build", ...obligations])];
+  await fs.writeFile(file, `schemaVersion: 1
+id: "${id}"
+epicId: "${id.split(".")[0]}"
+title: "Story ${id}"
+status: approved
+goal: "Verify Story ${id}"
+dependencies: []
+requirementIds:
+  - "REQ-${id}"
+acceptanceCriteria:
+  - "The Story outcome is observable"
+outOfScope:
+  - "Unrelated behavior"
+architectureConstraints: []
+affectedSurfaces:
+  - "test"
+ownedPaths:
+  - "story-${id}.txt"
+ownedSchemas: []
+parallelSafe: true
+apiContracts: []
+dataChanges: []
+migrationRequired: false
+uiStates: []
+testObligations: [${gates.map((item) => `"${item}"`).join(", ")}]
+producesGates: []
+requiredEnvironment: []
+openQuestions: []
+sourceArtifacts:
+  - "_bmad-output/PRODUCT-SPEC.md#${sourceHash}"
+approval:
+  approvedAt: "2026-07-26T00:00:00.000Z"
+  contentHash: ""
+`);
   assert.equal(run(target, "contracts.mjs", ["approve", file]).status, 0);
 }
 async function approveEpic(target, id, stories, obligations = ["github"]) {
@@ -307,6 +346,102 @@ test("spec review packet binds a material artifact hash for a clean session", as
   await fs.writeFile(packetFile, originalPacket);
   await fs.appendFile(artifact, "changed\n");
   assert.notEqual(run(target, "spec-review-packet.mjs", ["verify", output]).status, 0);
+});
+
+test("planning profile, decisions, and finding identities remain durable", async () => {
+  const target = await project("planning-state");
+  const profile = run(target, "planning.mjs", ["profile", "course-demo", "--deadline-days", "2", "--team-size", "1", "--rationale", "Two-day course demonstration"]);
+  assert.equal(profile.status, 0, profile.stderr);
+  let planning = JSON.parse(await fs.readFile(path.join(target, ".geki", "state", "planning.json"), "utf8"));
+  assert.equal(planning.profile.id, "course-demo");
+  assert.equal(planning.policy.recommendedCurrentStories, 12);
+  assert.equal(planning.stage, "discovery");
+
+  const decision = run(target, "planning.mjs", ["decision", "--id", "PROJECT_MODE", "--status", "confirmed", "--summary", "Course demonstration", "--source", "user"]);
+  assert.equal(decision.status, 0, decision.stderr);
+  const ledger = JSON.parse(await fs.readFile(path.join(target, ".geki", "planning", "decisions.json"), "utf8"));
+  assert.equal(ledger.decisions[0].id, "PROJECT_MODE");
+
+  const artifact = path.join(target, "_bmad-output", "PRODUCT-SPEC.md");
+  await fs.mkdir(path.dirname(artifact), { recursive: true });
+  await fs.writeFile(artifact, "# Product Spec\n");
+  const first = run(target, "findings.mjs", ["record", "--artifact", artifact, "--lens", "product", "--severity", "high", "--key", "missing-success-signal", "--requirement", "Success signal", "--evidence", "No measurable result", "--risk", "Demo cannot prove completion", "--recommendation", "Add one observable signal"]);
+  assert.equal(first.status, 0, first.stderr);
+  const firstFinding = JSON.parse(first.stdout);
+  const second = run(target, "findings.mjs", ["record", "--artifact", artifact, "--lens", "product", "--severity", "high", "--key", "missing-success-signal", "--requirement", "Success signal", "--evidence", "Still absent", "--risk", "Demo cannot prove completion", "--recommendation", "Add one observable signal"]);
+  assert.equal(second.status, 0, second.stderr);
+  const secondFinding = JSON.parse(second.stdout);
+  assert.equal(secondFinding.id, firstFinding.id);
+  assert.equal(secondFinding.occurrences, 2);
+  assert.equal(run(target, "findings.mjs", ["resolve", "--id", firstFinding.id, "--status", "closed", "--resolution", "Acceptance signal added"]).status, 0);
+
+  const baseline = run(target, "spec-review-packet.mjs", ["--artifact", artifact, "--lens", "product", "--checkpoint", "product-package", "--round", "1", "--mode", "baseline"]);
+  assert.equal(baseline.status, 0, baseline.stderr);
+  assert.equal(run(target, "planning.mjs", ["review", "--checkpoint", "product-package", "--round", "1", "--outcome", "changes-required", "--open-high", "1"]).status, 0);
+  const delta = run(target, "spec-review-packet.mjs", ["--artifact", artifact, "--lens", "product", "--checkpoint", "product-package", "--round", "2", "--mode", "delta"]);
+  assert.equal(delta.status, 0, delta.stderr);
+  assert.equal(run(target, "planning.mjs", ["review", "--checkpoint", "product-package", "--round", "2", "--outcome", "pass", "--open-high", "0"]).status, 0);
+  const unnecessaryThird = run(target, "spec-review-packet.mjs", ["--artifact", artifact, "--lens", "product", "--checkpoint", "product-package", "--round", "3", "--mode", "delta"]);
+  assert.notEqual(unnecessaryThird.status, 0);
+});
+
+test("static spec validation catches deterministic graph and ownership errors", async () => {
+  const target = await project("spec-validator");
+  const source = path.join(target, "_bmad-output", "PRODUCT-SPEC.md");
+  await fs.mkdir(path.dirname(source), { recursive: true });
+  await fs.writeFile(source, "# Product Spec\n");
+  const sourceHash = createHash("sha256").update(await fs.readFile(source)).digest("hex");
+  const storyDirectory = path.join(target, ".geki", "spec", "stories");
+  const epicDirectory = path.join(target, ".geki", "spec", "epics");
+  await fs.mkdir(storyDirectory, { recursive: true });
+  await fs.mkdir(epicDirectory, { recursive: true });
+  const story = (id, dependency, requirement, ownedPath) => `schemaVersion: 1
+id: "${id}"
+epicId: "1"
+title: "Story ${id}"
+status: approved
+goal: "Deliver ${id}"
+dependencies: [${dependency}]
+requirementIds: [${requirement}]
+acceptanceCriteria:
+  - "Observable outcome"
+outOfScope:
+  - "Future hardening"
+architectureConstraints: []
+affectedSurfaces:
+  - "api"
+ownedPaths:
+  - "${ownedPath}"
+ownedSchemas: []
+parallelSafe: true
+apiContracts: []
+dataChanges: []
+migrationRequired: false
+uiStates: []
+testObligations:
+  - "build"
+producesGates: []
+requiredEnvironment: []
+openQuestions: []
+sourceArtifacts:
+  - "_bmad-output/PRODUCT-SPEC.md#${sourceHash}"
+approval:
+  approvedAt: "2026-07-26T00:00:00.000Z"
+  contentHash: ""
+`;
+  await fs.writeFile(path.join(storyDirectory, "1.1.yaml"), story("1.1", "", "REQ-1", "src/one"));
+  await fs.writeFile(path.join(storyDirectory, "1.2.yaml"), story("1.2", "1.1", "REQ-2", "src/two"));
+  await fs.writeFile(path.join(epicDirectory, "1.json"), `${JSON.stringify({ schemaVersion: 1, id: "1", status: "approved", stories: ["1.1", "1.2"], testObligations: ["github"] }, null, 2)}\n`);
+  await fs.writeFile(path.join(target, ".geki", "planning", "delivery-slice.json"), `${JSON.stringify({ schemaVersion: 1, id: "current-delivery", status: "approved", storyIds: ["1.1", "1.2"] }, null, 2)}\n`);
+  let validation = run(target, "spec-validator.mjs");
+  assert.equal(validation.status, 0, validation.stderr);
+  assert.equal(JSON.parse(validation.stdout).outcome, "passed");
+
+  await fs.writeFile(path.join(storyDirectory, "1.2.yaml"), story("1.2", "1.1", "REQ-1", "src/one"));
+  validation = run(target, "spec-validator.mjs");
+  assert.notEqual(validation.status, 0);
+  assert.match(validation.stdout, /multiple owners/);
+  assert.match(validation.stdout, /both Stories claim parallelSafe/);
 });
 
 test("spec review packet rejects Windows junctions that escape the project", { skip: process.platform !== "win32" }, async () => {

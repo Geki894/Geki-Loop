@@ -1,4 +1,4 @@
 interface:
   display_name: "Geki Status"
-  short_description: "Inspect durable Geki state and evidence"
-  default_prompt: "Use $geki-status to inspect the current Geki run state and evidence."
+  short_description: "Inspect durable planning, run state, and evidence"
+  default_prompt: "Use $geki-status to inspect the current planning stage, delivery scope, execution run, and evidence."

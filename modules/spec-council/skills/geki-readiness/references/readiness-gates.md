@@ -1,6 +1,7 @@
 # Readiness gates
 
 - Stable product goal and out-of-scope boundary.
+- Confirmed delivery profile and approved current delivery slice.
 - Acceptance criteria are observable and testable.
 - UX states exist where a UI is in scope.
 - Architecture decisions support the requirements and NFRs.
@@ -11,3 +12,5 @@
 - `.geki/gates.json` maps required evidence IDs to real repository commands; conditional migration, Playwright, sandbox API, and email obligations are explicit.
 - No unresolved high/critical Spec Council finding remains.
 - Story Contracts link to current source artifact hashes.
+- Static spec validation passes for the selected slice.
+- `next` and `future` capabilities are not materialized as current execution contracts.

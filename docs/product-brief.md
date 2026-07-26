@@ -15,12 +15,14 @@ A Windows developer working mainly with .NET 8 or NestJS, PostgreSQL/Supabase, R
 ## Outcomes
 
 - Resume work across Codex and Antigravity without chat history.
+- Scale planning from short course demonstrations to institutional production without forcing one artifact depth on every project.
+- Elaborate implementation contracts only for the current delivery slice.
 - Catch specification and architecture gaps before or during coding.
 - Prefer simple framework-native architecture.
 - Prove completion with test and review evidence.
 - Make progress observable through a read-only dashboard.
 
-## Non-goals for 0.1.0
+## Non-goals for 0.2.0
 
 - Global installation.
 - macOS/Linux guarantees.

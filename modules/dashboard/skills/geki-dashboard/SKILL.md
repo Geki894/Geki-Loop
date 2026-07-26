@@ -1,6 +1,6 @@
 ---
 name: geki-dashboard
-description: Launch or explain Geki's read-only local dashboard showing phases, Epics, Stories, gates, events, pull requests, and GitHub Actions. Use when the user wants progress visibility without controlling the workflow.
+description: Launch or explain Geki's read-only local dashboard showing planning profile and stage, delivery scope, Epics, Stories, gates, events, pull requests, and GitHub Actions. Use when the user wants progress visibility without controlling the workflow.
 ---
 
 # Geki Dashboard

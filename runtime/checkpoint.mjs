@@ -5,6 +5,7 @@ import path from "node:path";
 
 const root = process.cwd();
 const stateFile = path.join(root, ".geki", "state", "current-run.json");
+const planningFile = path.join(root, ".geki", "state", "planning.json");
 const handoffFile = path.join(root, ".geki", "handoff", "current.yaml");
 const args = process.argv.slice(2);
 const flag = (name, fallback = undefined) => {
@@ -14,6 +15,8 @@ const flag = (name, fallback = undefined) => {
 };
 
 const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+let planning = {};
+try { planning = JSON.parse(await fs.readFile(planningFile, "utf8")); } catch {}
 const git = (...gitArgs) => execFileSync("git", gitArgs, { cwd: root, encoding: "utf8" }).trim();
 const branch = git("branch", "--show-current");
 let commit = git("rev-parse", "HEAD");
@@ -31,6 +34,8 @@ const shouldCommit = Boolean(flag("commit", false));
 const content = `schema_version: 1
 status: ${yamlString(state.status)}
 phase: ${yamlString(state.phase)}
+planning_profile: ${yamlString(planning.profile?.id || null)}
+planning_stage: ${yamlString(planning.stage || null)}
 epic: ${yamlString(state.currentEpic)}
 story: ${yamlString(state.currentStory)}
 branch: ${yamlString(branch)}

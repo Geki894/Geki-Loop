@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "phase": "planning",
+  "stage": "intake",
+  "status": "active",
+  "profile": {
+    "id": null,
+    "rationale": null,
+    "deadlineDays": null,
+    "teamSize": null,
+    "selectedAt": null
+  },
+  "policy": {
+    "documentMode": null,
+    "uxMode": null,
+    "reviewMaxRounds": 2,
+    "storyContractBatchSize": 3,
+    "recommendedCurrentStories": null,
+    "productionHardeningRequired": null
+  },
+  "artifacts": {},
+  "reviewCheckpoints": {},
+  "pendingDecisions": [],
+  "nextAction": "Run geki-spec to confirm the delivery profile and continue planning.",
+  "updatedAt": null
+}

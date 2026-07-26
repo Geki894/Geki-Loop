@@ -1,6 +1,6 @@
 {
   "id": "render",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Render deployment guidance without making deploy a completion gate.",
   "bootstrap": false,
   "skills": [],

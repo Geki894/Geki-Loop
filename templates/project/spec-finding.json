@@ -1,11 +1,19 @@
 {
   "schemaVersion": 1,
+  "id": "",
+  "fingerprint": "",
   "reviewerLens": "",
-  "severity": "blocking|major|minor|note",
+  "severity": "critical|high|medium|low",
+  "status": "open|closed|deferred|rejected",
   "artifact": "",
+  "artifactHash": "",
   "requirement": "",
   "evidence": "",
   "risk": "",
   "recommendation": "",
-  "needsUserDecision": false
+  "needsUserDecision": false,
+  "reviewRound": 1,
+  "occurrences": 1,
+  "reopenCount": 0,
+  "closureHash": null
 }

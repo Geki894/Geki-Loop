@@ -1,6 +1,6 @@
 {
   "id": "provisioning",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Architecture-driven module reconciliation.",
   "bootstrap": true,
   "skills": ["geki-sync"],
