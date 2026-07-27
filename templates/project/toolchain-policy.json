@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "compatibility": {
+    "requireLockfile": true,
+    "requirePeerCheck": true,
+    "installFromLockfile": true
+  },
+  "audit": {
+    "failOn": ["high", "critical"],
+    "noFixAvailable": "record-risk",
+    "forbidForceFix": true
+  }
+}

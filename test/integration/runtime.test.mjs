@@ -34,7 +34,7 @@ dependencies: []
 requirementIds:
   - "REQ-${id}"
 acceptanceCriteria:
-  - "The Story outcome is observable"
+  - "Given an approved Story, When it is implemented, Then the Story outcome is observable"
 outOfScope:
   - "Unrelated behavior"
 architectureConstraints: []
@@ -47,7 +47,10 @@ parallelSafe: true
 apiContracts: []
 dataChanges: []
 migrationRequired: false
+migrationPredecessor: null
 uiStates: []
+evidenceRequirements:
+  - "Automated gate report"
 testObligations: [${gates.map((item) => `"${item}"`).join(", ")}]
 producesGates: []
 requiredEnvironment: []
@@ -65,6 +68,30 @@ async function approveEpic(target, id, stories, obligations = ["github"]) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, `${JSON.stringify({ schemaVersion: 1, id: String(id), status: "approved", stories, testObligations: obligations }, null, 2)}\n`);
   assert.equal(run(target, "contracts.mjs", ["approve", file]).status, 0);
+}
+async function preflight(target, stories) {
+  const inputHash = createHash("sha256");
+  const epicIds = new Set(stories.map((id) => id.split(".")[0]));
+  for (const file of [
+    path.join(target, ".geki", "architecture.json"),
+    path.join(target, ".geki", "lock.json"),
+    path.join(target, ".geki", "gates.json"),
+    ...stories.map((id) => path.join(target, ".geki", "spec", "stories", `${id}.yaml`)),
+    ...[...epicIds].sort().map((id) => path.join(target, ".geki", "spec", "epics", `${id}.json`))
+  ]) inputHash.update(await fs.readFile(file)).update("\0");
+  const report = {
+    schemaVersion: 1,
+    kind: "execution-preflight",
+    createdAt: new Date().toISOString(),
+    scope: { stories },
+    inputHash: inputHash.digest("hex"),
+    outcome: "passed",
+    checks: []
+  };
+  const file = path.join(target, ".geki", "evidence", "preflight", `${report.inputHash}.json`);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, `${JSON.stringify(report, null, 2)}\n`);
+  return file;
 }
 
 test("execution requires approved readiness and explicit scope; repair stops at three", async () => {
@@ -91,7 +118,8 @@ test("execution requires approved readiness and explicit scope; repair stops at 
   await approveStory(target, "2.1");
   await approveEpic(target, "1", ["1.1"]);
   await approveEpic(target, "2", ["2.1"]);
-  result = run(target, "state.mjs", ["start", "--epics", "1,2"]);
+  const preflightFile = await preflight(target, ["1.1", "2.1"]);
+  result = run(target, "state.mjs", ["start", "--epics", "1,2", "--preflight", preflightFile]);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).currentStory, "1.1");
   assert.notEqual(run(target, "state.mjs", ["advance", "--story", "2.1"]).status, 0);
@@ -142,9 +170,35 @@ test("scope flags cannot be empty and passing evidence is hashed and revalidated
   state.phase = "ready";
   await fs.writeFile(stateFile, `${JSON.stringify(state, null, 2)}\n`);
   await approveStory(target, "1.1", ["playwright"]);
+  await approveEpic(target, "1", ["1.1"]);
   await fs.writeFile(path.join(target, ".geki", "gates.json"), `${JSON.stringify({ requiredEvidence: ["build"], conditionalEvidence: ["playwright"] })}\n`);
   assert.notEqual(run(target, "state.mjs", ["start", "--epics"]).status, 0);
-  assert.equal(run(target, "state.mjs", ["start", "--stories", "1.1"]).status, 0);
+  const preflightFile = await preflight(target, ["1.1"]);
+  assert.equal(run(target, "state.mjs", ["start", "--stories", "1.1", "--preflight", preflightFile]).status, 0);
+  let activeRun = JSON.parse(await fs.readFile(stateFile, "utf8"));
+  assert.deepEqual(activeRun.scope.epics, []);
+  assert.deepEqual(activeRun.integrationEpics, ["1"]);
+  assert.equal(activeRun.currentEpic, "1");
+  assert.equal(git("rev-parse", "--verify", activeRun.epicBranches["1"]).status, 0);
+  const failedReview = path.join(target, ".geki", "evidence", "review", "failed.json");
+  await fs.mkdir(path.dirname(failedReview), { recursive: true });
+  await fs.writeFile(failedReview, `${JSON.stringify({
+    kind: "independent-review",
+    storyId: "1.1",
+    outcome: "failed",
+    reviewerContextId: "clean-reviewer",
+    reviewedCommit: git("rev-parse", "HEAD").stdout.trim(),
+    findings: [{ id: "REV-001", severity: "high", actionable: true, affectedGates: ["build"], requiresUserDecision: false }]
+  })}\n`);
+  assert.equal(run(target, "state.mjs", ["review-result", "--story", "1.1", "--evidence", failedReview]).status, 0);
+  activeRun = JSON.parse(await fs.readFile(stateFile, "utf8"));
+  assert.equal(activeRun.status, "repairing");
+  assert.deepEqual(activeRun.impactedGates, ["build"]);
+  await fs.writeFile(path.join(target, "review-repair.txt"), "repair\n");
+  assert.equal(git("add", "review-repair.txt").status, 0);
+  assert.equal(git("commit", "-m", "repair review finding").status, 0);
+  const repairCommit = git("rev-parse", "HEAD").stdout.trim();
+  assert.equal(run(target, "state.mjs", ["repair-complete", "--story", "1.1", "--findings", "REV-001", "--commit", repairCommit]).status, 0);
   assert.notEqual(run(target, "state.mjs", ["gate", "--id", "build", "--outcome", "passed"]).status, 0);
   const evidence = path.join(target, ".geki", "evidence", "gates", "build.json");
   await fs.mkdir(path.dirname(evidence), { recursive: true });
@@ -159,9 +213,9 @@ test("scope flags cannot be empty and passing evidence is hashed and revalidated
   const reviewEvidence = path.join(target, ".geki", "evidence", "review", "independent.json");
   await fs.mkdir(path.dirname(reviewEvidence), { recursive: true });
   await fs.writeFile(reviewEvidence, `${JSON.stringify({ kind: "independent-review", storyId: "1.1", gate: "independent-review", outcome: "passed", unresolvedHighCritical: 0, reviewerContextId: "clean-reviewer", reviewedCommit: "wrong" })}\n`);
-  assert.notEqual(run(target, "state.mjs", ["gate", "--id", "independent-review", "--outcome", "passed", "--evidence", reviewEvidence]).status, 0);
+  assert.notEqual(run(target, "state.mjs", ["review-result", "--story", "1.1", "--evidence", reviewEvidence]).status, 0);
   await fs.writeFile(reviewEvidence, `${JSON.stringify({ kind: "independent-review", storyId: "1.1", gate: "independent-review", outcome: "passed", unresolvedHighCritical: 0, reviewerContextId: "clean-reviewer", reviewedCommit: git("rev-parse", "HEAD").stdout.trim() })}\n`);
-  assert.equal(run(target, "state.mjs", ["gate", "--id", "independent-review", "--outcome", "passed", "--evidence", reviewEvidence]).status, 0);
+  assert.equal(run(target, "state.mjs", ["review-result", "--story", "1.1", "--evidence", reviewEvidence]).status, 0);
   assert.equal(run(target, "state.mjs", ["verify"]).status, 0);
   await fs.writeFile(path.join(target, "application-change.txt"), "changed after evidence\n");
   assert.notEqual(run(target, "state.mjs", ["verify"]).status, 0);
@@ -194,7 +248,8 @@ test("two Stories isolate gates and Epic verification waits for both", async () 
   await approveStory(target, "1.2", ["build"]);
   await approveEpic(target, "1", ["1.1", "1.2"], []);
   await fs.writeFile(path.join(target, ".geki", "gates.json"), `${JSON.stringify({ requiredEvidence: [], conditionalEvidence: ["build", "github"] })}\n`);
-  assert.equal(run(target, "state.mjs", ["start", "--epics", "1"]).status, 0);
+  const preflightFile = await preflight(target, ["1.1", "1.2"]);
+  assert.equal(run(target, "state.mjs", ["start", "--epics", "1", "--preflight", preflightFile]).status, 0);
   assert.equal(git("checkout", "-b", "epic/1").status, 0);
   assert.equal(run(target, "state.mjs", ["bind-epic", "--epic", "1", "--branch", "epic/1"]).status, 0);
   assert.equal(git("checkout", "-b", "story/1.1").status, 0);
@@ -404,7 +459,7 @@ goal: "Deliver ${id}"
 dependencies: [${dependency}]
 requirementIds: [${requirement}]
 acceptanceCriteria:
-  - "Observable outcome"
+  - "Given valid input, When the Story runs, Then the outcome is observable"
 outOfScope:
   - "Future hardening"
 architectureConstraints: []
@@ -417,7 +472,10 @@ parallelSafe: true
 apiContracts: []
 dataChanges: []
 migrationRequired: false
+migrationPredecessor: null
 uiStates: []
+evidenceRequirements:
+  - "Automated gate report"
 testObligations:
   - "build"
 producesGates: []
@@ -436,6 +494,8 @@ approval:
   let validation = run(target, "spec-validator.mjs");
   assert.equal(validation.status, 0, validation.stderr);
   assert.equal(JSON.parse(validation.stdout).outcome, "passed");
+  const compilation = run(target, "contract-compiler.mjs", ["--stories", "1.1,1.2"]);
+  assert.equal(compilation.status, 0, compilation.stderr);
 
   await fs.writeFile(path.join(storyDirectory, "1.2.yaml"), story("1.2", "1.1", "REQ-1", "src/one"));
   validation = run(target, "spec-validator.mjs");
@@ -476,4 +536,68 @@ test("review packets accept a Windows project path reached through a junction al
   const result = aliasedRun("spec-review-packet.mjs", ["--artifact", artifact, "--lens", "security"]);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(aliasedRun("spec-review-packet.mjs", ["verify", result.stdout.trim()]).status, 0);
+});
+
+test("linked worktrees share run state through the Git common directory", async () => {
+  const target = await project("shared-worktree");
+  const git = (...args) => spawnSync("git", args, { cwd: target, encoding: "utf8" });
+  assert.equal(git("init").status, 0);
+  git("config", "user.email", "geki-test@example.invalid");
+  git("config", "user.name", "Geki Test");
+  git("add", "-A");
+  assert.equal(git("commit", "-m", "fixture").status, 0);
+  const linked = `${target}-linked`;
+  assert.equal(git("worktree", "add", "-b", "story/shared-state", linked).status, 0);
+  const stateFile = path.join(target, ".geki", "state", "current-run.json");
+  const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+  state.status = "shared-state-visible";
+  await fs.writeFile(stateFile, `${JSON.stringify(state, null, 2)}\n`);
+  const result = spawnSync(process.execPath, [path.join(linked, ".geki", "runtime", "state.mjs"), "status"], { cwd: linked, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).status, "shared-state-visible");
+});
+
+test("gate cache ignores Geki metadata and reuses unchanged application inputs", async () => {
+  const target = await project("gate-cache");
+  const git = (...args) => spawnSync("git", args, { cwd: target, encoding: "utf8" });
+  assert.equal(git("init").status, 0);
+  git("config", "user.email", "geki-test@example.invalid");
+  git("config", "user.name", "Geki Test");
+  await fs.writeFile(path.join(target, "app.txt"), "stable\n");
+  await fs.writeFile(path.join(target, ".geki", "gates.json"), `${JSON.stringify({
+    commands: [{ id: "build", command: `node -e "process.exit(0)"`, required: true, paths: ["app.txt"] }],
+    requiredEvidence: ["build"],
+    conditionalEvidence: []
+  }, null, 2)}\n`);
+  const stateFile = path.join(target, ".geki", "state", "current-run.json");
+  const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+  state.currentStory = "1.1";
+  state.currentEpic = "1";
+  await fs.writeFile(stateFile, `${JSON.stringify(state, null, 2)}\n`);
+  assert.equal(git("add", "app.txt").status, 0);
+  assert.equal(git("commit", "-m", "application fixture").status, 0);
+  const first = run(target, "run-gates.mjs");
+  assert.equal(first.status, 0, first.stderr);
+  const second = run(target, "run-gates.mjs");
+  assert.equal(second.status, 0, second.stderr);
+  assert.match(second.stdout, /\[geki:build\] cached/);
+});
+
+test("architecture provisioning check validates approved stack and synchronized modules", async () => {
+  const target = await project("architecture-provisioning");
+  const architectureFile = path.join(target, ".geki", "architecture.json");
+  const architecture = JSON.parse(await fs.readFile(architectureFile, "utf8"));
+  architecture.status = "approved";
+  architecture.backend = { runtime: "dotnet", framework: "aspnet-core-web-api", targetFramework: "net8.0", architectureStyle: "modular-monolith" };
+  await fs.writeFile(architectureFile, `${JSON.stringify(architecture, null, 2)}\n`);
+  let result = run(target, "architecture-check.mjs");
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout, /not synchronized/);
+  const lockFile = path.join(target, ".geki", "lock.json");
+  const lock = JSON.parse(await fs.readFile(lockFile, "utf8"));
+  for (const id of ["execution-loop", "testing", "github-ci", "backend-dotnet"]) lock.modules[id] = { version: "0.3.0" };
+  await fs.writeFile(lockFile, `${JSON.stringify(lock, null, 2)}\n`);
+  result = run(target, "architecture-check.mjs");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).outcome, "passed");
 });

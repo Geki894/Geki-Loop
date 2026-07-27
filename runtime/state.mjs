@@ -3,15 +3,21 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { fingerprintPaths } from "./gate-input.mjs";
+import { controlPath, relativeControl, resolveProjectContext } from "./project-context.mjs";
 
-const root = process.cwd();
-const stateFile = path.join(root, ".geki", "state", "current-run.json");
-const eventsFile = path.join(root, ".geki", "state", "events.jsonl");
-const architectureFile = path.join(root, ".geki", "architecture.json");
-const gatesFile = path.join(root, ".geki", "gates.json");
+const context = resolveProjectContext();
+const root = context.workspaceRoot;
+const controlRoot = context.controlRoot;
+const stateFile = controlPath(context, "state", "current-run.json");
+const eventsFile = controlPath(context, "state", "events.jsonl");
+const architectureFile = controlPath(context, "architecture.json");
+const gatesFile = controlPath(context, "gates.json");
+const runtimeDirectory = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const command = args.shift() || "status";
-const realRoot = await fs.realpath(root);
+const realControlRoot = await fs.realpath(controlRoot);
 
 const transitions = {
   planning: ["spec-review"],
@@ -54,6 +60,20 @@ function git(args) {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
   return result.status === 0 ? result.stdout.trim() : null;
 }
+function ensureEpicBranches(epics) {
+  const branches = {};
+  const base = git(["rev-parse", "--verify", "coding"]) ? "coding" : "HEAD";
+  for (const epic of epics) {
+    const slug = String(epic).toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
+    const branch = `geki/epic-${slug}`;
+    if (!git(["rev-parse", "--verify", branch])) {
+      const created = spawnSync("git", ["branch", branch, base], { cwd: root, encoding: "utf8" });
+      if (created.status !== 0) throw new Error(created.stderr.trim() || `Cannot create Epic integration branch '${branch}'.`);
+    }
+    branches[epic] = branch;
+  }
+  return branches;
+}
 
 async function workspaceFingerprint() {
   const result = spawnSync("git", ["ls-files", "-co", "--exclude-standard", "-z"], { cwd: root, encoding: "utf8" });
@@ -79,8 +99,8 @@ function evidenceSupportsGate(id, payload, binding = {}) {
 
 async function evidenceMetadata(input, expectedGate = null, binding = {}) {
   if (!input || input === true) throw new Error("A project-local --evidence file is required for a passing gate.");
-  const file = path.resolve(root, input);
-  const relative = path.relative(root, file);
+  const file = path.resolve(controlRoot, input);
+  const relative = path.relative(controlRoot, file);
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Evidence must be inside the project.");
   const relativeUnix = relative.split(path.sep).join("/");
   if (expectedGate) {
@@ -88,7 +108,7 @@ async function evidenceMetadata(input, expectedGate = null, binding = {}) {
     if (!relativeUnix.startsWith(prefix)) throw new Error(`Evidence for '${expectedGate}' must be written under ${prefix}`);
   }
   const realFile = await fs.realpath(file);
-  const realRelative = path.relative(realRoot, realFile);
+  const realRelative = path.relative(realControlRoot, realFile);
   if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) throw new Error("Evidence escapes the real project boundary.");
   const data = await fs.readFile(realFile);
   let payload;
@@ -97,20 +117,59 @@ async function evidenceMetadata(input, expectedGate = null, binding = {}) {
   const sourceCommit = git(["rev-parse", "HEAD"]);
   if (expectedGate === "independent-review" && payload.reviewedCommit !== sourceCommit) throw new Error("Independent review must target the current implementation commit.");
   if (expectedGate === "github" && payload.headRefOid !== sourceCommit) throw new Error("GitHub Epic evidence must target the current verified commit.");
+  const gateResult = expectedGate && payload?.kind === "gate-report"
+    ? (payload.results || payload.gateResults || []).find((item) => (item.id === expectedGate || item.gate === expectedGate) && item.outcome === "passed")
+    : null;
   return {
-    path: relativeUnix,
+    path: relativeControl(context, realFile),
     sha256: createHash("sha256").update(data).digest("hex"),
     bytes: data.length,
     sourceCommit,
-    workspaceFingerprint: await workspaceFingerprint(),
+    workspaceFingerprint: gateResult?.inputFingerprint ? null : await workspaceFingerprint(),
+    inputFingerprint: gateResult?.inputFingerprint || null,
+    inputPaths: gateResult?.inputPaths || null,
+    policyHash: gateResult?.policyHash || null,
     kind: payload.kind || "gate-report"
+  };
+}
+
+async function preflightMetadata(input, stories) {
+  if (!input || input === true) throw new Error("Execution requires --preflight <passed-report> from execution-preflight.mjs.");
+  const file = path.resolve(controlRoot, input);
+  const relative = path.relative(controlRoot, file);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Preflight evidence must be inside the project.");
+  const data = await fs.readFile(file);
+  const payload = JSON.parse(data.toString("utf8"));
+  if (payload.kind !== "execution-preflight" || payload.outcome !== "passed") throw new Error("Preflight evidence is not a passing execution-preflight report.");
+  if (JSON.stringify(payload.scope?.stories || []) !== JSON.stringify(stories)) throw new Error("Preflight scope does not match the requested Story scope.");
+  const inputHash = createHash("sha256");
+  const storyFiles = stories.map((id) => controlPath(context, "spec", "stories", `${id}.yaml`));
+  const epicIds = new Set();
+  for (const storyFile of storyFiles) {
+    const content = await fs.readFile(storyFile, "utf8");
+    const match = content.match(/^epicId:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+    if (match) epicIds.add(match[1].trim());
+  }
+  for (const inputFile of [
+    architectureFile,
+    controlPath(context, "lock.json"),
+    gatesFile,
+    ...storyFiles,
+    ...[...epicIds].sort().map((id) => controlPath(context, "spec", "epics", `${id}.json`))
+  ]) inputHash.update(await fs.readFile(inputFile)).update("\0");
+  if (payload.inputHash !== inputHash.digest("hex")) throw new Error("Preflight evidence is stale for the current Architecture, modules, gates, or Story Contracts.");
+  return {
+    path: relativeControl(context, file),
+    sha256: createHash("sha256").update(data).digest("hex"),
+    inputHash: payload.inputHash,
+    createdAt: payload.createdAt
   };
 }
 
 async function validateEvidence(id, entry, binding) {
   if (!entry?.evidence?.path || !entry.evidence.sha256) return "missing evidence metadata";
   try {
-    const data = await fs.readFile(path.join(root, entry.evidence.path));
+    const data = await fs.readFile(path.join(controlRoot, entry.evidence.path));
     if (createHash("sha256").update(data).digest("hex") !== entry.evidence.sha256) return "evidence hash changed";
     let payload;
     try { payload = JSON.parse(data.toString("utf8")); } catch { return "evidence is not JSON"; }
@@ -122,7 +181,9 @@ async function validateEvidence(id, entry, binding) {
     const result = spawnSync("git", ["merge-base", "--is-ancestor", entry.evidence.sourceCommit, "HEAD"], { cwd: root });
     if (result.status !== 0) return "evidence commit is not an ancestor of HEAD";
   }
-  if (!entry.evidence.workspaceFingerprint || entry.evidence.workspaceFingerprint !== await workspaceFingerprint()) return "workspace changed since evidence was recorded";
+  if (entry.evidence.inputFingerprint && Array.isArray(entry.evidence.inputPaths)) {
+    if (entry.evidence.inputFingerprint !== await fingerprintPaths(root, entry.evidence.inputPaths)) return "gate inputs changed since evidence was recorded";
+  } else if (!entry.evidence.workspaceFingerprint || entry.evidence.workspaceFingerprint !== await workspaceFingerprint()) return "workspace changed since evidence was recorded";
   return null;
 }
 
@@ -132,11 +193,15 @@ function yamlList(content, key) {
   const block = content.match(new RegExp(`^${key}:\\s*\\r?\\n((?:\\s+-\\s+.*(?:\\r?\\n|$))*)`, "m"));
   return block ? [...block[1].matchAll(/^\s+-\s+(.+)$/gm)].map((match) => match[1].trim().replace(/^['\"]|['\"]$/g, "")) : [];
 }
+function yamlScalar(content, key, fallback = "") {
+  const match = content.match(new RegExp(`^${key}:\\s*(.*)$`, "m"));
+  return match ? match[1].trim().replace(/^['"]|['"]$/g, "") : fallback;
+}
 
 async function verifyApprovedContract(file, expectedId, format) {
   const data = await fs.readFile(file);
   const approval = await readJson(`${file}.sha256.json`, null);
-  const relative = path.relative(root, file).split(path.sep).join("/");
+  const relative = path.relative(controlRoot, file).split(path.sep).join("/");
   const hash = createHash("sha256").update(data).digest("hex");
   if (!approval || approval.contract !== relative || approval.sha256 !== hash) throw new Error(`Contract is missing approval or changed: ${relative}`);
   if (format === "json") {
@@ -146,37 +211,60 @@ async function verifyApprovedContract(file, expectedId, format) {
   }
   const content = data.toString("utf8");
   if (!new RegExp(`^id:\\s*[\"']?${String(expectedId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\"']?\\s*$`, "m").test(content) || !/^status:\s*approved\s*$/m.test(content)) throw new Error(`Story Contract is not approved: ${relative}`);
-  return { contract: { id: expectedId, testObligations: yamlList(content, "testObligations") }, hash };
+  return {
+    contract: {
+      id: expectedId,
+      epicId: yamlScalar(content, "epicId"),
+      dependencies: yamlList(content, "dependencies"),
+      testObligations: yamlList(content, "testObligations")
+    },
+    hash
+  };
 }
 
 async function scopeContracts(epics, stories) {
   const allStories = new Set(stories);
+  const allEpics = new Set(epics);
   const storyToEpic = {};
   const epicObligations = {};
   const storyObligations = {};
   const contractHashes = { epics: {}, stories: {} };
-  for (const epic of epics) {
-    const file = path.join(root, ".geki", "spec", "epics", `${epic}.json`);
+  const epicContracts = new Map();
+  async function loadEpic(epic) {
+    if (epicContracts.has(epic)) return epicContracts.get(epic);
+    const file = controlPath(context, "spec", "epics", `${epic}.json`);
     const approved = await verifyApprovedContract(file, epic, "json");
     const contract = approved.contract;
+    epicContracts.set(epic, contract);
     contractHashes.epics[epic] = approved.hash;
     if (!Array.isArray(contract.stories) || !contract.stories.length) throw new Error(`Epic Contract ${epic} must list approved Stories.`);
     contract.stories.forEach((story) => {
       const id = String(story);
       if (storyToEpic[id] && storyToEpic[id] !== epic) throw new Error(`Story ${id} belongs to more than one selected Epic.`);
       storyToEpic[id] = epic;
-      allStories.add(id);
     });
     epicObligations[epic] = [...new Set((contract.testObligations || []).map(String))];
+    return contract;
+  }
+  for (const epic of epics) {
+    const contract = await loadEpic(epic);
+    contract.stories.forEach((story) => allStories.add(String(story)));
   }
   for (const story of allStories) {
     if (!/^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/.test(story)) throw new Error(`Unsafe Story ID in contract: ${story}`);
-    const file = path.join(root, ".geki", "spec", "stories", `${story}.yaml`);
+    const file = controlPath(context, "spec", "stories", `${story}.yaml`);
     const approved = await verifyApprovedContract(file, story, "yaml");
     contractHashes.stories[story] = approved.hash;
     storyObligations[story] = [...new Set((approved.contract.testObligations || []).map(String))];
+    const epicId = String(approved.contract.epicId || storyToEpic[story] || "");
+    if (!epicId) throw new Error(`Story Contract ${story} must declare epicId.`);
+    if (storyToEpic[story] && storyToEpic[story] !== epicId) throw new Error(`Story ${story} epicId '${epicId}' conflicts with selected Epic '${storyToEpic[story]}'.`);
+    const epicContract = await loadEpic(epicId);
+    if (!epicContract.stories.map(String).includes(story)) throw new Error(`Epic Contract ${epicId} does not include Story ${story}.`);
+    storyToEpic[story] = epicId;
+    allEpics.add(epicId);
   }
-  return { stories: [...allStories], storyToEpic, epicObligations, storyObligations, contractHashes };
+  return { epics: [...allEpics], stories: [...allStories], storyToEpic, epicObligations, storyObligations, contractHashes };
 }
 
 function hashesChanged(started, current) {
@@ -223,19 +311,22 @@ if (command === "status") {
   const state = await loadState();
   if (state.phase !== "ready") throw new Error(`Execution can start only from ready; current phase is ${state.phase}.`);
   const contracts = await scopeContracts(epics, stories);
-  const specificationValidation = spawnSync(process.execPath, [path.join(root, ".geki", "runtime", "spec-validator.mjs"), "--stories", contracts.stories.join(",")], { cwd: root, encoding: "utf8" });
+  const preflightEvidence = await preflightMetadata(flag("preflight"), contracts.stories);
+  const specificationValidation = spawnSync(process.execPath, [path.join(runtimeDirectory, "spec-validator.mjs"), "--stories", contracts.stories.join(",")], { cwd: root, encoding: "utf8" });
   if (specificationValidation.status !== 0) throw new Error(`Static specification validation failed before execution:\n${specificationValidation.stdout || specificationValidation.stderr}`);
-  const deliverySlice = await readJson(path.join(root, ".geki", "planning", "delivery-slice.json"), null);
+  const deliverySlice = await readJson(controlPath(context, "planning", "delivery-slice.json"), null);
   if (deliverySlice?.status === "approved") {
     const approvedStories = new Set((deliverySlice.storyIds || []).map(String));
     const outside = contracts.stories.filter((story) => !approvedStories.has(story));
     if (outside.length) throw new Error(`Execution scope is outside the approved current delivery slice: ${outside.join(", ")}`);
   }
   const firstStory = contracts.stories[0] || null;
+  const epicBranches = ensureEpicBranches(contracts.epics);
   const storyObligations = Object.fromEntries(contracts.stories.map((story) => [story, [...new Set([...(contracts.storyObligations[story] || []), ...requestedObligations])]]));
   const started = await transition("executing", "running", {
     scope: { epics, stories: contracts.stories },
-    currentEpic: contracts.storyToEpic[firstStory] || epics[0] || null,
+    integrationEpics: contracts.epics,
+    currentEpic: contracts.storyToEpic[firstStory] || contracts.epics[0] || null,
     currentStory: firstStory,
     currentGate: "story-contract",
     architectureHash: createHash("sha256").update(architectureData).digest("hex"),
@@ -245,13 +336,17 @@ if (command === "status") {
     storyObligations,
     epicObligations: contracts.epicObligations,
     storyGates: Object.fromEntries(contracts.stories.map((story) => [story, {}])),
-    epicGates: Object.fromEntries(epics.map((epic) => [epic, {}])),
+    epicGates: Object.fromEntries(contracts.epics.map((epic) => [epic, {}])),
     storyStatus: Object.fromEntries(contracts.stories.map((story) => [story, story === firstStory ? "active" : "pending"])),
-    epicStatus: Object.fromEntries(epics.map((epic) => [epic, "pending"])),
-    epicBranches: {},
+    epicStatus: Object.fromEntries(contracts.epics.map((epic) => [epic, "pending"])),
+    epicBranches,
+    epicBranchMode: Object.fromEntries(contracts.epics.map((epic) => [epic, "auto"])),
     storyVerification: {},
     storyIntegration: {},
     storyRepairAttempts: Object.fromEntries(contracts.stories.map((story) => [story, {}])),
+    preflightEvidence,
+    pendingReview: null,
+    impactedGates: [],
     failure: null
   });
   await appendEvent("EXECUTION_STARTED", { scope: started.scope, explicit: true });
@@ -294,7 +389,7 @@ if (command === "status") {
   const story = state.currentStory;
   if (state.status !== "needs-review" || state.failure?.story !== story || state.failure?.signature !== signature || (state.storyRepairAttempts?.[story]?.[signature] || 0) < 3) throw new Error("failure-clear must match the locked failure signature and Story.");
   const reviewPath = flag("evidence");
-  const reviewFile = path.resolve(root, reviewPath === true ? "" : reviewPath || "");
+  const reviewFile = path.resolve(controlRoot, reviewPath === true ? "" : reviewPath || "");
   const reviewPayload = await readJson(reviewFile, null);
   const currentCommit = git(["rev-parse", "HEAD"]);
   if (reviewPayload?.kind !== "repair-review" || reviewPayload?.outcome !== "passed" || reviewPayload?.signature !== signature || Number(reviewPayload?.unresolvedHighCritical || 0) !== 0 || !reviewPayload?.reviewerContextId || !reviewPayload?.approvedStrategy || reviewPayload?.reviewedCommit !== currentCommit) {
@@ -308,6 +403,87 @@ if (command === "status") {
   await writeJson(stateFile, state);
   await appendEvent("REPAIR_LIMIT_CLEARED", { signature, review });
   console.log(JSON.stringify({ signature, cleared: true, review }, null, 2));
+} else if (command === "review-result") {
+  const state = await loadState();
+  const story = String(flag("story", state.currentStory) || "");
+  if (!story || !state.scope?.stories?.includes(story)) throw new Error("review-result requires --story in the active scope.");
+  const reviewPath = flag("evidence");
+  const reviewFile = path.resolve(controlRoot, reviewPath === true ? "" : reviewPath || "");
+  const payload = await readJson(reviewFile, null);
+  const currentCommit = git(["rev-parse", "HEAD"]);
+  if (payload?.kind !== "independent-review" || payload?.storyId !== story || !payload?.reviewerContextId || payload?.reviewedCommit !== currentCommit) {
+    throw new Error("review-result requires independent-review JSON for the active Story and current commit.");
+  }
+  if (!relativeControl(context, reviewFile).startsWith(".geki/evidence/review/")) throw new Error("Independent review evidence must be stored under .geki/evidence/review.");
+  if (payload.outcome === "passed") {
+    if (Number(payload.unresolvedHighCritical || 0) !== 0) throw new Error("A passing review cannot contain unresolved high/critical findings.");
+    const evidence = await evidenceMetadata(reviewPath, "independent-review", { story });
+    state.storyGates ||= {};
+    state.storyGates[story] ||= {};
+    state.storyGates[story]["independent-review"] = { outcome: "passed", evidence, at: new Date().toISOString() };
+    state.status = "running";
+    state.currentGate = "independent-review";
+    state.pendingReview = null;
+    state.impactedGates = [];
+    state.failure = null;
+    state.updatedAt = new Date().toISOString();
+    await writeJson(stateFile, state);
+    await appendEvent("INDEPENDENT_REVIEW_PASSED", { story, evidence });
+    console.log(JSON.stringify({ story, outcome: "passed" }, null, 2));
+  } else if (payload.outcome === "failed") {
+    const findings = Array.isArray(payload.findings) ? payload.findings : [];
+    if (!findings.length || findings.some((finding) => !finding.id)) throw new Error("A failed review requires findings with stable IDs.");
+    const findingIds = [...new Set(findings.map((finding) => String(finding.id)))].sort();
+    const impactedGates = [...new Set(findings.flatMap((finding) => finding.affectedGates || []))].sort();
+    const stopReasons = [...new Set(findings.map((finding) => finding.stopReason).filter(Boolean))];
+    const actionable = findings.every((finding) => finding.actionable === true && !finding.requiresUserDecision);
+    const allowedStops = new Set(["product-intent", "scope", "credential", "cost", "destructive", "safety", "architecture"]);
+    if (stopReasons.some((reason) => !allowedStops.has(reason))) throw new Error(`Unsupported review stopReason: ${stopReasons.join(", ")}`);
+    const signature = `review:${findingIds.join("+")}`;
+    state.storyRepairAttempts ||= {};
+    state.storyRepairAttempts[story] ||= {};
+    const count = (state.storyRepairAttempts[story][signature] || 0) + 1;
+    state.storyRepairAttempts[story][signature] = count;
+    const reviewEvidence = await evidenceMetadata(reviewPath);
+    state.pendingReview = { story, findingIds, impactedGates, signature, evidence: reviewEvidence, reviewedCommit: currentCommit };
+    state.impactedGates = impactedGates;
+    state.failure = { story, signature, attempt: count, summary: `${findings.length} independent review finding(s)`, at: new Date().toISOString() };
+    if (!actionable || stopReasons.length) {
+      state.phase = "waiting-clarification";
+      state.status = "user-decision-required";
+      state.pendingClarification = { story, findingIds, stopReasons };
+      await appendEvent("REVIEW_REQUIRES_USER_DECISION", { story, findingIds, stopReasons });
+    } else if (count >= 3) {
+      state.status = "needs-review";
+      await appendEvent("REPAIR_LIMIT_REACHED", { story, signature, attempts: count });
+    } else {
+      state.status = "repairing";
+      state.currentGate = "repair";
+      await appendEvent("AUTONOMOUS_REPAIR_STARTED", { story, findingIds, impactedGates, attempt: count });
+    }
+    state.updatedAt = new Date().toISOString();
+    await writeJson(stateFile, state);
+    console.log(JSON.stringify({ story, outcome: "failed", action: state.status, findingIds, impactedGates, attempt: count }, null, 2));
+    if (state.status === "needs-review") process.exitCode = 2;
+  } else throw new Error("review-result outcome must be passed or failed.");
+} else if (command === "repair-complete") {
+  const state = await loadState();
+  const story = String(flag("story", state.currentStory) || "");
+  if (!story || state.status !== "repairing" || state.pendingReview?.story !== story) throw new Error("repair-complete requires an autonomously repairing Story.");
+  const idsInput = flag("findings");
+  const ids = String(idsInput === true ? "" : idsInput || "").split(",").map((item) => item.trim()).filter(Boolean).sort();
+  if (JSON.stringify(ids) !== JSON.stringify([...(state.pendingReview.findingIds || [])].sort())) throw new Error("repair-complete must name every pending finding ID exactly.");
+  const commit = String(flag("commit", "") || "");
+  const currentCommit = git(["rev-parse", "HEAD"]);
+  if (!commit || git(["rev-parse", `${commit}^{commit}`]) !== currentCommit) throw new Error("repair-complete requires --commit equal to the current implementation commit.");
+  if (currentCommit === state.pendingReview.reviewedCommit) throw new Error("repair-complete requires a new implementation commit after the failed review.");
+  state.status = "running";
+  state.currentGate = state.impactedGates?.[0] || "independent-review";
+  state.failure = null;
+  state.updatedAt = new Date().toISOString();
+  await writeJson(stateFile, state);
+  await appendEvent("AUTONOMOUS_REPAIR_COMPLETED", { story, findingIds: ids, impactedGates: state.impactedGates, commit: currentCommit });
+  console.log(JSON.stringify({ story, reRunGates: state.impactedGates, reReviewFindings: ids }, null, 2));
 } else if (command === "gate") {
   const id = flag("id");
   const outcome = flag("outcome");
@@ -317,7 +493,7 @@ if (command === "status") {
   if (!['story', 'epic'].includes(level)) throw new Error("--level must be story or epic.");
   const binding = level === "story" ? { story: String(flag("story", state.currentStory) || "") } : { epic: String(flag("epic", state.currentEpic) || "") };
   if (level === "story" && (!binding.story || !state.scope?.stories?.includes(binding.story))) throw new Error("Gate requires a Story in the active scope.");
-  if (level === "epic" && (!binding.epic || !state.scope?.epics?.includes(binding.epic))) throw new Error("Gate requires an Epic in the active scope.");
+  if (level === "epic" && (!binding.epic || !(state.integrationEpics || state.scope?.epics || []).includes(binding.epic))) throw new Error("Gate requires an Epic in the active integration context.");
   const evidence = outcome === "passed" ? await evidenceMetadata(flag("evidence"), id, binding) : null;
   const collection = level === "story" ? (state.storyGates ||= {}) : (state.epicGates ||= {});
   const scopeId = binding.story || binding.epic;
@@ -350,14 +526,18 @@ if (command === "status") {
   const state = await loadState();
   const epic = String(flag("epic") || "");
   const branch = String(flag("branch") || "");
-  if (!epic || !state.scope?.epics?.includes(epic) || !branch) throw new Error("bind-epic requires --epic <id> --branch <integration-branch> in the active scope.");
+  if (!epic || !(state.integrationEpics || state.scope?.epics || []).includes(epic) || !branch) throw new Error("bind-epic requires --epic <id> --branch <integration-branch> in the active integration context.");
   if (["main", "coding"].includes(branch)) throw new Error("An Epic integration branch cannot be main or coding.");
-  const currentBranch = git(["branch", "--show-current"]);
   const resolvedBranch = git(["rev-parse", "--verify", branch]);
-  if (!currentBranch || currentBranch !== branch || !resolvedBranch) throw new Error(`Check out existing Epic integration branch '${branch}' before binding it.`);
+  if (!resolvedBranch) throw new Error(`Epic integration branch '${branch}' does not exist.`);
   state.epicBranches ||= {};
-  if (state.epicBranches[epic] && state.epicBranches[epic] !== branch) throw new Error(`Epic '${epic}' is already bound to '${state.epicBranches[epic]}'.`);
+  if (state.epicBranches[epic] && state.epicBranches[epic] !== branch) {
+    const integrated = Object.values(state.storyIntegration || {}).some((entry) => entry?.epic === epic);
+    if (integrated || state.epicBranchMode?.[epic] !== "auto") throw new Error(`Epic '${epic}' is already bound to '${state.epicBranches[epic]}'.`);
+  }
   state.epicBranches[epic] = branch;
+  state.epicBranchMode ||= {};
+  state.epicBranchMode[epic] = "explicit";
   state.updatedAt = new Date().toISOString();
   await writeJson(stateFile, state);
   await appendEvent("EPIC_BRANCH_BOUND", { epic, branch, head: resolvedBranch });
@@ -408,7 +588,7 @@ if (command === "status") {
   const epic = flag("epic", null);
   const story = flag("story", epic ? null : state.currentStory);
   if (epic) {
-    if (!state.scope?.epics?.includes(epic)) throw new Error(`Epic '${epic}' is not in the active scope.`);
+    if (!(state.integrationEpics || state.scope?.epics || []).includes(epic)) throw new Error(`Epic '${epic}' is not in the active integration context.`);
     const epicStories = contracts.stories.filter((id) => contracts.storyToEpic[id] === epic);
     const incomplete = epicStories.filter((id) => state.storyStatus?.[id] !== "integrated");
     if (incomplete.length) throw new Error(`Epic '${epic}' cannot verify until Stories are verified and integrated: ${incomplete.join(", ")}`);

@@ -1,6 +1,6 @@
 {
   "id": "backend-dotnet",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": ".NET 8 ASP.NET Core Web API profile.",
   "bootstrap": false,
   "skills": ["geki-backend-dotnet"],

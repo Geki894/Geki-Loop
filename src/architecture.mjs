@@ -1,15 +1,16 @@
 const value = (object, keys) => keys.reduce((current, key) => current?.[key], object);
 const normalized = (input) => String(input || "").toLowerCase().replace(/[_\s]+/g, "-");
+const legacy = (input) => typeof input === "string" ? input : "";
 
 export function modulesForArchitecture(architecture) {
   validateArchitecture(architecture);
   const recommended = new Set(["execution-loop", "testing", "github-ci"]);
   const runtime = normalized(value(architecture, ["backend", "runtime"]) || architecture.runtime);
   const framework = normalized(value(architecture, ["backend", "framework"]) || architecture.framework);
-  const database = normalized(value(architecture, ["database", "engine"]) || architecture.database);
+  const database = normalized(value(architecture, ["database", "engine"]) || legacy(architecture.database));
   const hosting = normalized(value(architecture, ["database", "hosting"]) || value(architecture, ["database", "provider"]));
   const surface = normalized(value(architecture, ["frontend", "surface"]));
-  const deployment = normalized(value(architecture, ["deployment", "provider"]) || architecture.deployment);
+  const deployment = normalized(value(architecture, ["deployment", "provider"]) || legacy(architecture.deployment));
   if (runtime === "dotnet" || framework.includes("aspnet")) recommended.add("backend-dotnet");
   if (runtime === "node" || runtime === "nodejs" || framework === "nestjs") recommended.add("backend-nestjs");
   if (["postgres", "postgresql"].includes(database) || hosting === "supabase") recommended.add("database-postgres");
@@ -22,7 +23,7 @@ export function modulesForArchitecture(architecture) {
 export function validateArchitecture(architecture) {
   const runtime = normalized(value(architecture, ["backend", "runtime"]) || architecture.runtime);
   const framework = normalized(value(architecture, ["backend", "framework"]) || architecture.framework);
-  const database = normalized(value(architecture, ["database", "engine"]) || architecture.database);
+  const database = normalized(value(architecture, ["database", "engine"]) || legacy(architecture.database));
   const hosting = normalized(value(architecture, ["database", "hosting"]) || value(architecture, ["database", "provider"]));
   const orm = normalized(value(architecture, ["database", "orm"]));
   const driver = normalized(value(architecture, ["database", "driver"]));

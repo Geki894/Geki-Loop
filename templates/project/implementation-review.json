@@ -7,5 +7,18 @@
   "reviewerContextId": "",
   "reviewedCommit": "",
   "unresolvedHighCritical": 0,
-  "findings": []
+  "findings": [],
+  "findingShape": {
+    "id": "REV-001",
+    "severity": "critical|high|medium|low",
+    "file": "",
+    "location": "",
+    "evidence": "",
+    "impact": "",
+    "requiredCorrection": "",
+    "actionable": true,
+    "affectedGates": [],
+    "requiresUserDecision": false,
+    "stopReason": null
+  }
 }

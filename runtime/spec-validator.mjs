@@ -2,13 +2,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { controlPath, resolveProjectContext } from "./project-context.mjs";
 
-const root = process.cwd();
+const context = resolveProjectContext();
+const root = context.controlRoot;
 const realRoot = await fs.realpath(root);
-const storyDirectory = path.join(root, ".geki", "spec", "stories");
-const epicDirectory = path.join(root, ".geki", "spec", "epics");
-const sliceFile = path.join(root, ".geki", "planning", "delivery-slice.json");
-const planningFile = path.join(root, ".geki", "state", "planning.json");
+const storyDirectory = controlPath(context, "spec", "stories");
+const epicDirectory = controlPath(context, "spec", "epics");
+const sliceFile = controlPath(context, "planning", "delivery-slice.json");
+const planningFile = controlPath(context, "state", "planning.json");
 const errors = [];
 const warnings = [];
 const args = process.argv.slice(2);
@@ -107,6 +109,8 @@ for (const file of await files(storyDirectory, /\.ya?ml$/i)) {
     parallelSafe: bool(content, "parallelSafe"),
     dataChanges: list(content, "dataChanges"),
     migrationRequired: bool(content, "migrationRequired"),
+    migrationPredecessor: scalar(content, "migrationPredecessor"),
+    evidenceRequirements: list(content, "evidenceRequirements"),
     testObligations: list(content, "testObligations"),
     producesGates: list(content, "producesGates"),
     openQuestions: list(content, "openQuestions"),
@@ -114,7 +118,7 @@ for (const file of await files(storyDirectory, /\.ya?ml$/i)) {
   };
   stories.set(id, story);
   if (path.basename(file).replace(/\.ya?ml$/i, "") !== id) errors.push(`${relative}: filename must match Story id ${id}`);
-  for (const key of ["goal", "dependencies", "requirementIds", "acceptanceCriteria", "outOfScope", "architectureConstraints", "affectedSurfaces", "ownedPaths", "ownedSchemas", "parallelSafe", "testObligations", "producesGates", "sourceArtifacts"]) {
+  for (const key of ["goal", "dependencies", "requirementIds", "acceptanceCriteria", "outOfScope", "architectureConstraints", "affectedSurfaces", "ownedPaths", "ownedSchemas", "parallelSafe", "evidenceRequirements", "testObligations", "producesGates", "sourceArtifacts"]) {
     if (!hasKey(content, key)) errors.push(`${relative}: missing required key ${key}`);
   }
   for (const value of [...story.dependencies, ...story.requirementIds, ...story.ownedPaths, ...story.ownedSchemas]) {
@@ -123,6 +127,7 @@ for (const file of await files(storyDirectory, /\.ya?ml$/i)) {
   for (const duplicate of duplicates(story.dependencies)) errors.push(`${relative}: duplicate dependency ${duplicate}`);
   for (const gate of story.producesGates.filter((item) => story.testObligations.includes(item))) errors.push(`${relative}: gate producer cannot require its own gate ${gate}`);
   if (story.migrationRequired && !story.testObligations.includes("database-migration")) errors.push(`${relative}: migrationRequired needs database-migration test obligation`);
+  if (story.migrationRequired && (!story.migrationPredecessor || !story.dependencies.includes(story.migrationPredecessor))) errors.push(`${relative}: migrationRequired needs migrationPredecessor listed in dependencies`);
   if (story.dataChanges.length && !story.migrationRequired) warnings.push(`${relative}: dataChanges exist while migrationRequired is false`);
   if (story.status === "approved") {
     if (!story.goal) errors.push(`${relative}: approved Story needs goal`);
@@ -131,6 +136,7 @@ for (const file of await files(storyDirectory, /\.ya?ml$/i)) {
     if (!story.outOfScope.length) errors.push(`${relative}: approved Story needs an explicit outOfScope boundary`);
     if (!story.affectedSurfaces.length) errors.push(`${relative}: approved Story needs affectedSurfaces`);
     if (!story.testObligations.length) errors.push(`${relative}: approved Story needs testObligations`);
+    if (!story.evidenceRequirements.length) errors.push(`${relative}: approved Story needs evidenceRequirements`);
     if (story.openQuestions.length) errors.push(`${relative}: approved Story has openQuestions`);
     if (!story.sourceArtifacts.length) errors.push(`${relative}: approved Story needs sourceArtifacts`);
   }

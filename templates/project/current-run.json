@@ -3,6 +3,7 @@
   "phase": "planning",
   "status": "idle",
   "scope": {"epics": [], "stories": []},
+  "integrationEpics": [],
   "currentEpic": null,
   "currentStory": null,
   "currentGate": null,
@@ -19,10 +20,14 @@
   "epicGates": {},
   "storyStatus": {},
   "epicBranches": {},
+  "epicBranchMode": {},
   "storyVerification": {},
   "storyIntegration": {},
   "epicStatus": {},
   "storyRepairAttempts": {},
+  "pendingReview": null,
+  "impactedGates": [],
+  "preflightEvidence": null,
   "pendingClarification": null,
   "updatedAt": null
 }

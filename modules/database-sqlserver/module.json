@@ -1,6 +1,6 @@
 {
   "id": "database-sqlserver",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SQL Server and container-backed integration testing profile.",
   "bootstrap": false,
   "skills": ["geki-database-sqlserver"],

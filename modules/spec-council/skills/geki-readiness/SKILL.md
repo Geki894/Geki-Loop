@@ -7,7 +7,7 @@ description: Decide whether selected Epics and Stories are safe for autonomous i
 
 Read [references/readiness-gates.md](references/readiness-gates.md) and inspect only `.geki/planning/delivery-slice.json`, its selected Story Contracts, and their upstream artifacts. Future capability titles do not block current readiness.
 
-Run `node .geki/runtime/spec-validator.mjs` before semantic readiness. Any deterministic error is `FAIL`; warnings require an explicit bounded disposition.
+Run `node .geki/runtime/spec-validator.mjs`, `contract-compiler.mjs --stories <selected-ids>`, and `architecture-check.mjs` before semantic readiness. Any deterministic error is `FAIL`; warnings require an explicit bounded disposition.
 
 Return exactly one decision: `PASS`, `CONCERNS`, or `FAIL`.
 
@@ -15,6 +15,6 @@ Return exactly one decision: `PASS`, `CONCERNS`, or `FAIL`.
 - `CONCERNS`: implementation may proceed only after explicitly recorded, bounded risks are accepted by the user.
 - `FAIL`: route missing or contradictory decisions back through `geki-spec` or `geki-correct-course`.
 
-After `PASS`, invoke `node .geki/distribution/bin/geki.js sync` and let the user confirm the module diff. Do not invoke `geki-run`; show the recommended explicit command instead.
+After `PASS`, invoke module sync and let the user confirm its diff. Do not invoke `geki-run`; show the recommended explicit command. When the user later invokes it, `execution-preflight --apply` performs one final consolidated drift/toolchain/Git/auth check rather than stopping in multiple setup stages.
 
 Before `PASS`, populate `.geki/gates.json` with executable commands for every required evidence ID supported by the selected scope. Do not rely on inferred commands when integration/API/migration/Playwright behavior is required. Add conditional gate IDs to the recommended `geki-run --obligations` scope.

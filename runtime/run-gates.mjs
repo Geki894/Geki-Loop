@@ -4,26 +4,20 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { gateInput } from "./gate-input.mjs";
+import { controlPath, relativeControl, resolveProjectContext } from "./project-context.mjs";
 
-const root = process.cwd();
-const policyFile = path.join(root, ".geki", "gates.json");
-const evidenceDir = path.join(root, ".geki", "evidence", "gates");
+const context = resolveProjectContext();
+const root = context.workspaceRoot;
+const policyFile = controlPath(context, "gates.json");
+const evidenceDir = controlPath(context, "evidence", "gates");
+const cacheFile = path.join(evidenceDir, "cache.json");
+const stateFile = controlPath(context, "state", "current-run.json");
 const isCi = process.argv.includes("--ci");
+const idsIndex = process.argv.indexOf("--ids");
+const selectedIds = idsIndex >= 0 ? new Set(String(process.argv[idsIndex + 1] || "").split(",").map((item) => item.trim()).filter(Boolean)) : null;
 
 async function exists(file) { try { await fs.access(file); return true; } catch { return false; } }
-async function workspaceFingerprint() {
-  const result = spawnSync("git", ["ls-files", "-co", "--exclude-standard", "-z"], { cwd: root, encoding: "utf8" });
-  if (result.status !== 0) throw new Error("Git repository is required for gate evidence.");
-  const files = result.stdout.split("\0").filter(Boolean).filter((file) => !file.replace(/\\/g, "/").startsWith(".geki/")).sort();
-  const hash = createHash("sha256");
-  for (const relative of files) {
-    const file = path.join(root, relative);
-    const stat = await fs.stat(file).catch(() => null);
-    if (!stat?.isFile()) continue;
-    hash.update(relative.replace(/\\/g, "/")).update("\0").update(await fs.readFile(file)).update("\0");
-  }
-  return hash.digest("hex");
-}
 async function run(entry) {
   const startedAt = new Date().toISOString();
   return new Promise((resolve) => {
@@ -47,7 +41,7 @@ function inferredCommands() {
       for (const [id, script] of [["format", "format:check"], ["lint", "lint"], ["typecheck", "typecheck"], ["build", "build"], ["unit", "test"], ["integration", "test:integration"], ["api", "test:e2e"]]) {
         if (scripts[script]) commands.push({ id, command: `npm run ${script}`, required: true });
       }
-      commands.push({ id: "security", command: "npm audit --audit-level=high", required: true });
+      commands.push({ id: "security", command: "node .geki/runtime/dependency-audit.mjs npm", required: true, paths: ["package.json", "package-lock.json", "npm-shrinkwrap.json"] });
     }
     if (dotnetEntry) {
       const quoted = `\"${path.relative(root, dotnetEntry)}\"`;
@@ -78,45 +72,78 @@ async function findDotnetEntry(directory) {
   return null;
 }
 
-const policy = JSON.parse(await fs.readFile(policyFile, "utf8"));
-const commands = policy.commands?.length ? policy.commands : await inferredCommands();
+const policyData = await fs.readFile(policyFile);
+const policy = JSON.parse(policyData.toString("utf8"));
+const policyHash = createHash("sha256").update(policyData).digest("hex");
+const availableCommands = policy.commands?.length ? policy.commands : await inferredCommands();
+const commands = selectedIds ? availableCommands.filter((entry) => selectedIds.has(entry.id)) : availableCommands;
+if (selectedIds) {
+  const missing = [...selectedIds].filter((id) => !availableCommands.some((entry) => entry.id === id));
+  if (missing.length) throw new Error(`Unknown requested gate IDs: ${missing.join(", ")}`);
+}
 if (!commands.length) throw new Error("No quality gate commands are configured or detectable.");
 await fs.mkdir(evidenceDir, { recursive: true });
+const cache = await fs.readFile(cacheFile, "utf8").then(JSON.parse).catch(() => ({ schemaVersion: 1, entries: {} }));
 const results = [];
 for (const command of commands) {
-  console.log(`\n[geki:${command.id}] ${command.command}`);
-  const result = await run(command);
+  const input = await gateInput(root, command, policyHash);
+  const cached = cache.entries?.[input.key];
+  let result;
+  if (cached?.outcome === "passed") {
+    console.log(`\n[geki:${command.id}] cached (${input.key.slice(0, 10)})`);
+    result = { ...cached, ...command, ...input, cached: true, reusedAt: new Date().toISOString() };
+  } else {
+    console.log(`\n[geki:${command.id}] ${command.command}`);
+    result = { ...await run(command), ...input, cached: false };
+    if (result.outcome === "passed") cache.entries[input.key] = result;
+  }
   results.push(result);
   if (result.outcome === "failed" && command.required !== false) break;
 }
-const stateFile = path.join(root, ".geki", "state", "current-run.json");
+await fs.writeFile(cacheFile, `${JSON.stringify(cache, null, 2)}\n`, "utf8");
 const activeState = await exists(stateFile) ? JSON.parse(await fs.readFile(stateFile, "utf8")) : null;
 if (activeState && !activeState.currentStory) throw new Error("Gate execution requires an active Story.");
-const report = { schemaVersion: 1, kind: "gate-report", createdAt: new Date().toISOString(), ci: isCi, scope: activeState ? { story: activeState.currentStory, epic: activeState.currentEpic || null } : null, results };
+const report = {
+  schemaVersion: 2,
+  kind: "gate-report",
+  createdAt: new Date().toISOString(),
+  ci: isCi,
+  workspaceRoot: root,
+  controlRoot: context.controlRoot,
+  scope: activeState ? { story: activeState.currentStory, epic: activeState.currentEpic || null } : null,
+  policyHash,
+  results
+};
 const reportFile = path.join(evidenceDir, `${report.createdAt.replace(/[:.]/g, "-")}.json`);
 await fs.writeFile(reportFile, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 const reportData = await fs.readFile(reportFile);
-const evidence = {
-  path: path.relative(root, reportFile).split(path.sep).join("/"),
-  sha256: createHash("sha256").update(reportData).digest("hex"),
-  bytes: reportData.length,
-  sourceCommit: (() => {
-    const result = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
-    return result.status === 0 ? result.stdout.trim() : null;
-  })(),
-  workspaceFingerprint: await workspaceFingerprint(),
-  kind: "gate-report"
-};
+const reportHash = createHash("sha256").update(reportData).digest("hex");
+const sourceCommit = (() => {
+  const result = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : null;
+})();
 if (activeState) {
   const state = activeState;
   state.storyGates ||= {};
   state.storyGates[state.currentStory] ||= {};
   for (const result of results) {
-    state.storyGates[state.currentStory][result.id] = { outcome: result.outcome, evidence, at: result.completedAt, command: result.command };
+    const evidence = {
+      path: relativeControl(context, reportFile),
+      sha256: reportHash,
+      bytes: reportData.length,
+      sourceCommit,
+      workspaceFingerprint: null,
+      inputFingerprint: result.inputFingerprint,
+      inputPaths: result.inputPaths,
+      policyHash: result.policyHash,
+      gateId: result.id,
+      kind: "gate-report"
+    };
+    state.storyGates[state.currentStory][result.id] = { outcome: result.outcome, evidence, at: result.completedAt, command: result.command, cached: result.cached };
   }
   state.updatedAt = new Date().toISOString();
   await fs.writeFile(stateFile, `${JSON.stringify(state, null, 2)}\n`, "utf8");
 }
 const failed = results.filter((result) => result.outcome === "failed" && result.required !== false);
-console.log(`\nGeki evidence: ${path.relative(root, reportFile)}`);
+console.log(`\nGeki evidence: ${relativeControl(context, reportFile)}`);
 if (failed.length) process.exitCode = 1;

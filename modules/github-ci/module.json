@@ -1,6 +1,6 @@
 {
   "id": "github-ci",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Required GitHub Actions gates and protected-branch merge policy.",
   "bootstrap": false,
   "skills": [],

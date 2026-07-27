@@ -2,8 +2,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { resolveProjectContext } from "./project-context.mjs";
 
-const root = process.cwd();
+const context = resolveProjectContext();
+const root = context.controlRoot;
 const realRoot = await fs.realpath(root);
 const args = process.argv.slice(2);
 const command = args.shift();

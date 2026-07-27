@@ -1,4 +1,4 @@
-# Geki 0.2.0 Acceptance Matrix
+# Geki 0.3.0 Acceptance Matrix
 
 | Requirement | Evidence |
 | --- | --- |
@@ -13,6 +13,13 @@
 | Durable planning progress | Profile, stage, artifact status, review checkpoint, decisions, and next action survive agent changes |
 | Readiness and automatic sync proposal | State transition and architecture module resolver tests |
 | Explicit autonomous run | Runtime rejects execution without explicit scope and readiness |
+| Consolidated execution preflight | Architecture provisioning, contract compilation, Git/remote/auth, doctor, toolchain install, and shared-state write checks produce one fail-closed report |
+| Direct Story Epic binding | A Story-only scope validates `epicId`, Epic membership, and creates an integration branch without adding sibling Stories |
+| Autonomous repair controller | Structured review findings transition to repair, impacted gates, and delta re-review; user stops are authority-limited and same-signature repair stops at three |
+| Worktree-safe state | Linked-worktree integration test proves the Git common directory owns authoritative run state |
+| Stable gate cache | Integration test proves unchanged application inputs reuse a passing gate despite Geki metadata changes |
+| Contract compiler | Ownership, Given/When/Then acceptance, evidence, dependencies, and migration predecessors fail closed before LLM review |
+| Toolchain policy | Peer compatibility is checked before execution; force audit fixes are forbidden and unfixable upstream advisories are recorded as risk |
 | Story/Epic lifecycle isolation | Two-Story integration test rejects cross-Story evidence, requires verified commit integration, then verifies GitHub proof at Epic level |
 | Checkpoint/handoff | Cross-agent integration test resumes from persisted state |
 | .NET 8 and NestJS profiles | Profile validation and fixture architecture contracts |

@@ -3,9 +3,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { controlPath, relativeControl, resolveProjectContext } from "./project-context.mjs";
 
-const root = process.cwd();
-const realRoot = await fs.realpath(root);
+const context = resolveProjectContext();
+const root = context.workspaceRoot;
+const controlRoot = context.controlRoot;
+const realWorkspaceRoot = await fs.realpath(root);
+const realControlRoot = await fs.realpath(controlRoot);
 const args = process.argv.slice(2);
 const command = args[0] === "verify" ? args.shift() : "create";
 function flag(name, fallback = undefined) {
@@ -15,8 +19,11 @@ function flag(name, fallback = undefined) {
 }
 async function existingInside(file, label) {
   const real = await fs.realpath(file);
-  const relative = path.relative(realRoot, real);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes the real project boundary.`);
+  const workspaceRelative = path.relative(realWorkspaceRoot, real);
+  const controlRelative = path.relative(realControlRoot, real);
+  const inWorkspace = !workspaceRelative.startsWith("..") && !path.isAbsolute(workspaceRelative);
+  const inControl = !controlRelative.startsWith("..") && !path.isAbsolute(controlRelative);
+  if (!inWorkspace && !inControl) throw new Error(`${label} escapes the real project boundary.`);
   return real;
 }
 async function prepareOutputDirectory(directory) {
@@ -43,9 +50,9 @@ const git = (parts) => gitRaw(parts).trim();
 if (command === "verify") {
   const packetArg = args[0];
   if (!packetArg) throw new Error("Usage: review-packet.mjs verify <packet.json>");
-  const file = await existingInside(path.resolve(root, packetArg), "Packet");
-  const relative = path.relative(realRoot, file);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Packet must be inside the project.");
+  const file = await existingInside(path.resolve(controlRoot, packetArg), "Packet");
+  const relative = path.relative(realControlRoot, file);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Packet must be inside the control project.");
   const packet = JSON.parse(await fs.readFile(file, "utf8"));
   const claimed = packet.packetHash;
   delete packet.packetHash;
@@ -56,9 +63,9 @@ if (command === "verify") {
   if (createHash("sha256").update(currentDiff).digest("hex") !== packet.git.diffSha256) throw new Error("Implementation diff changed after review packet creation.");
   const dirty = gitRaw(["status", "--porcelain", "--untracked-files=all"]).split(/\r?\n/).filter(Boolean).map((line) => line.slice(3).replace(/^"|"$/g, "")).filter((file) => !file.replace(/\\/g, "/").startsWith(".geki/"));
   if (dirty.length) throw new Error(`Implementation worktree is not clean: ${dirty.join(", ")}`);
-  for (const source of [packet.sources.architecture, packet.sources.storyContract, packet.sources.storyApproval, packet.sources.state, ...(packet.sources.gates || [])]) {
-    const sourceFile = await existingInside(path.resolve(root, source.path), "Review source");
-    const sourceRelative = path.relative(realRoot, sourceFile);
+  for (const source of [packet.sources.architecture, packet.sources.storyContract, packet.sources.storyApproval, packet.sources.state, packet.sources.reviewFindingEvidence, ...(packet.sources.gates || [])].filter(Boolean)) {
+    const sourceFile = await existingInside(path.resolve(controlRoot, source.path), "Review source");
+    const sourceRelative = path.relative(realControlRoot, sourceFile);
     if (sourceRelative.startsWith("..") || path.isAbsolute(sourceRelative)) throw new Error("Review source escapes the project.");
     const data = await fs.readFile(sourceFile);
     if (createHash("sha256").update(data).digest("hex") !== source.sha256) throw new Error(`Review source changed: ${source.path}`);
@@ -72,15 +79,15 @@ if (!/^[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/.test(story)) throw new Error("Story 
 const base = flag("base", "HEAD~1");
 const hashFile = async (file) => {
   file = await existingInside(file, "Review source");
-  const relative = path.relative(realRoot, file);
+  const relative = path.relative(realControlRoot, file);
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Review source escapes the project.");
   const data = await fs.readFile(file);
   return { path: relative.split(path.sep).join("/"), sha256: createHash("sha256").update(data).digest("hex"), bytes: data.length };
 };
-const storyFile = path.join(root, ".geki", "spec", "stories", `${story}.yaml`);
+const storyFile = controlPath(context, "spec", "stories", `${story}.yaml`);
 const storyApprovalFile = `${storyFile}.sha256.json`;
-const architectureFile = path.join(root, ".geki", "architecture.json");
-const stateFile = path.join(root, ".geki", "state", "current-run.json");
+const architectureFile = controlPath(context, "architecture.json");
+const stateFile = controlPath(context, "state", "current-run.json");
 const activeState = JSON.parse(await fs.readFile(stateFile, "utf8"));
 const evidenceFiles = [...new Set(Object.values(activeState.storyGates?.[story] || {}).map((entry) => entry?.evidence?.path).filter(Boolean))];
 git(["rev-parse", "--verify", base]);
@@ -88,7 +95,7 @@ const dirty = gitRaw(["status", "--porcelain", "--untracked-files=all"]).split(/
 if (dirty.length) throw new Error(`Commit implementation changes before independent review: ${dirty.join(", ")}`);
 const storyData = await fs.readFile(storyFile);
 const storyApproval = JSON.parse(await fs.readFile(storyApprovalFile, "utf8"));
-const storyRelative = path.relative(root, storyFile).split(path.sep).join("/");
+const storyRelative = path.relative(controlRoot, storyFile).split(path.sep).join("/");
 if (storyApproval.contract !== storyRelative || storyApproval.sha256 !== createHash("sha256").update(storyData).digest("hex") || !/^status:\s*approved\s*$/m.test(storyData.toString("utf8"))) throw new Error("Story Contract is unapproved or changed.");
 const implementationDiff = gitRaw(["diff", "--binary", `${base}...HEAD`]);
 const packet = {
@@ -96,17 +103,21 @@ const packet = {
   story,
   createdAt: new Date().toISOString(),
   cleanContextRequired: true,
+  reviewFocus: activeState.pendingReview?.story === story ? activeState.pendingReview : null,
   instructions: [
     "Open this packet in a new Codex subagent or a clean Antigravity context.",
     "Review spec compliance before code quality; do not trust the implementer's summary.",
-    "Return findings with severity, evidence, requirement, and suggested correction."
+    activeState.pendingReview?.story === story
+      ? "Re-review the recorded finding IDs and direct regressions only; preserve stable finding IDs."
+      : "Return findings with stable IDs, severity, evidence, requirement, suggested correction, actionable flag, affected gates, and stop reason when user authority is required."
   ],
   sources: {
     architecture: await hashFile(architectureFile),
     storyContract: await hashFile(storyFile),
     storyApproval: await hashFile(storyApprovalFile),
     state: await hashFile(stateFile),
-    gates: await Promise.all(evidenceFiles.map((name) => hashFile(path.resolve(root, name))))
+    reviewFindingEvidence: activeState.pendingReview?.evidence?.path ? await hashFile(path.resolve(controlRoot, activeState.pendingReview.evidence.path)) : null,
+    gates: await Promise.all(evidenceFiles.map((name) => hashFile(path.resolve(controlRoot, name))))
   },
   git: {
     head: git(["rev-parse", "HEAD"]),
@@ -116,7 +127,7 @@ const packet = {
   }
 };
 packet.packetHash = createHash("sha256").update(JSON.stringify(packet)).digest("hex");
-const output = path.join(root, ".geki", "review", `${story}.json`);
+const output = controlPath(context, "review", `${story}.json`);
 await prepareOutputDirectory(path.dirname(output));
 await fs.writeFile(output, `${JSON.stringify(packet, null, 2)}\n`, "utf8");
-console.log(path.relative(root, output));
+console.log(relativeControl(context, output));

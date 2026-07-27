@@ -7,7 +7,7 @@
 | `readiness` | Cross-artifact gate is running | Resolve findings through `geki-readiness` |
 | `ready` | Planning is approved | Confirm module sync, then let the user explicitly invoke `geki-run` |
 | `provisioning` | Installed modules are being reconciled | Run `node .geki/distribution/bin/geki.js sync` |
-| `executing` | Explicit autonomous scope is active | Continue `geki-resume` if interrupted |
+| `executing` | Explicit autonomous scope is active | If status is `repairing`, continue repair without asking; otherwise continue `geki-resume` if interrupted |
 | `waiting-clarification` | A material decision is missing | Ask one focused question, then resume |
 | `spec-reopened` | Coding exposed a material spec/architecture gap | Run `geki-correct-course` |
 | `verifying` | Completion evidence is being assembled | Run `geki-verify` |

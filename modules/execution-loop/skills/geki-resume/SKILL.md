@@ -5,8 +5,8 @@ description: Resume an interrupted Geki Story or Epic across Codex and Antigravi
 
 # Geki Resume
 
-1. Read `.geki/handoff/current.yaml`, state, active Story Contract, and evidence.
-2. Reconcile branch, HEAD, worktree diff, and checkpoint commit. Git is authoritative when metadata disagrees.
+1. Resolve the Git common directory and read shared state/evidence first. Treat `.geki/handoff/current.yaml` as a rendered convenience view, never a second source of truth.
+2. Reconcile branch, HEAD, worktree diff, and checkpoint commit. Shared run state plus Git are authoritative when the handoff disagrees.
 3. Confirm the approved artifact hashes are still current with `contracts.mjs verify` for the active Story.
 4. Re-run the cheapest command that validates the claimed checkpoint.
 5. Continue the recorded `next_action`; do not restart the Story or repeat passed expensive gates without cause.

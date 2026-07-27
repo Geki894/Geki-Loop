@@ -16,7 +16,9 @@ parallelSafe: false
 apiContracts: []
 dataChanges: []
 migrationRequired: false
+migrationPredecessor: null
 uiStates: []
+evidenceRequirements: []
 testObligations: []
 producesGates: []
 requiredEnvironment: []

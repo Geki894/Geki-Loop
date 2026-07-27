@@ -4,9 +4,12 @@ import fs from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
+import { controlPath, resolveProjectContext } from "./project-context.mjs";
 
 const execFileAsync = promisify(execFile);
-const root = process.cwd();
+const context = resolveProjectContext();
+const root = context.workspaceRoot;
+const controlRoot = context.controlRoot;
 const portArg = process.argv.indexOf("--port");
 const port = Number(portArg >= 0 ? process.argv[portArg + 1] : 4178);
 async function json(file, fallback) { try { return JSON.parse(await fs.readFile(file, "utf8")); } catch { return fallback; } }
@@ -20,16 +23,17 @@ async function github() {
   } catch (error) { return { available: false, reason: error.message }; }
 }
 async function snapshot() {
-  const eventsPath = path.join(root, ".geki", "state", "events.jsonl");
+  const eventsPath = controlPath(context, "state", "events.jsonl");
   let events = [];
   try { events = (await fs.readFile(eventsPath, "utf8")).trim().split(/\r?\n/).filter(Boolean).slice(-100).map(JSON.parse).reverse(); } catch {}
   return {
-    state: await json(path.join(root, ".geki", "state", "current-run.json"), {}),
-    planning: await json(path.join(root, ".geki", "state", "planning.json"), {}),
-    deliverySlice: await json(path.join(root, ".geki", "planning", "delivery-slice.json"), {}),
-    findings: await json(path.join(root, ".geki", "findings", "registry.json"), { findings: [] }),
-    architecture: await json(path.join(root, ".geki", "architecture.json"), {}),
-    lock: await json(path.join(root, ".geki", "lock.json"), {}),
+    context: { workspaceRoot: root, controlRoot, linkedWorktree: context.linkedWorktree },
+    state: await json(controlPath(context, "state", "current-run.json"), {}),
+    planning: await json(controlPath(context, "state", "planning.json"), {}),
+    deliverySlice: await json(controlPath(context, "planning", "delivery-slice.json"), {}),
+    findings: await json(controlPath(context, "findings", "registry.json"), { findings: [] }),
+    architecture: await json(controlPath(context, "architecture.json"), {}),
+    lock: await json(controlPath(context, "lock.json"), {}),
     events,
     github: await github()
   };

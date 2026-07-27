@@ -91,7 +91,7 @@ test("adaptive planning uses profiles, bounded review, and JIT contracts", async
   assert.match(profiles, /course-demo/);
   assert.match(profiles, /startup-mvp/);
   assert.match(profiles, /institutional-production/);
-  assert.match(spec, /only the next 1–3 machine-readable Story Contracts/);
+  assert.match(spec, /only the next 1–3 canonical Story Contracts/);
   assert.match(delivery, /current-delivery/);
   assert.match(review, /one baseline round and one delta closure round/i);
   assert.match(review, /Round three only when round two still has open critical\/high/i);

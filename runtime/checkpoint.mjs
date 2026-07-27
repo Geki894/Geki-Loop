@@ -2,11 +2,13 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { controlPath, resolveProjectContext } from "./project-context.mjs";
 
-const root = process.cwd();
-const stateFile = path.join(root, ".geki", "state", "current-run.json");
-const planningFile = path.join(root, ".geki", "state", "planning.json");
-const handoffFile = path.join(root, ".geki", "handoff", "current.yaml");
+const context = resolveProjectContext();
+const root = context.workspaceRoot;
+const stateFile = controlPath(context, "state", "current-run.json");
+const planningFile = controlPath(context, "state", "planning.json");
+const handoffFile = controlPath(context, "handoff", "current.yaml");
 const args = process.argv.slice(2);
 const flag = (name, fallback = undefined) => {
   const index = args.indexOf(`--${name}`);
@@ -39,6 +41,8 @@ planning_stage: ${yamlString(planning.stage || null)}
 epic: ${yamlString(state.currentEpic)}
 story: ${yamlString(state.currentStory)}
 branch: ${yamlString(branch)}
+workspace: ${yamlString(root)}
+control_root: ${yamlString(context.controlRoot)}
 checkpoint_commit: ${yamlString(shouldCommit ? "SELF" : commit)}
 last_agent: ${yamlString(flag("agent", "unknown"))}
 completed:

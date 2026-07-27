@@ -26,10 +26,11 @@ export async function doctor(target) {
   checks.push({ id: "manifest", ok: Boolean(manifest), detail: manifest ? `Geki ${manifest.gekiVersion}` : "missing" });
   if (manifest) {
     const drift = [];
+    const mutableKinds = new Set(["state", "planning-state", "events", "decisions", "delivery-slice", "finding-registry", "handoff", "architecture", "config", "lock"]);
     for (const entry of manifest.files) {
       const file = path.join(paths.root, entry.path);
       if (!(await exists(file))) drift.push(`${entry.path}: missing`);
-      else if (entry.kind !== "shared" && await hashFile(file) !== entry.hash) drift.push(`${entry.path}: modified`);
+      else if (entry.kind !== "shared" && !mutableKinds.has(entry.kind) && await hashFile(file) !== entry.hash) drift.push(`${entry.path}: modified`);
     }
     checks.push({ id: "managed-files", ok: !drift.length, detail: drift.length ? drift.join("; ") : `${manifest.files.length} files verified` });
   }

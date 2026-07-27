@@ -2,7 +2,7 @@
 
 Geki is a project-local engineering workflow for Codex and Google Antigravity. It keeps planning interactive, turns approved epics into an explicit autonomous execution loop, and requires evidence before completion.
 
-> Status: `0.2.0` is a Windows-first release. Codex and Antigravity are the supported harnesses.
+> Status: `0.3.0` is a Windows-first release. Codex and Antigravity are the supported harnesses.
 
 ## Install
 
@@ -12,7 +12,7 @@ From the package source or a future npm release:
 npx geki@latest install
 ```
 
-Version `0.2.0` is not published to npm. Install the public repository directly:
+Version `0.3.0` is not published to npm. Install the public repository directly:
 
 ```powershell
 npx github:Geki894/Geki-Loop install
@@ -22,7 +22,7 @@ For a local package during development:
 
 ```powershell
 npm pack
-npx .\geki-0.2.0.tgz install
+npx .\geki-0.3.0.tgz install
 ```
 
 The installer bootstraps planning capabilities first. Architecture-dependent modules are proposed only after `geki-readiness` passes, then synchronized with `geki-sync` after one user confirmation.
@@ -43,7 +43,10 @@ geki-spec
 
 geki-run stories 1.1,1.2,1.3
   -> the user explicitly starts the autonomous loop
-  -> implementation, build, review, tests, GitHub checks
+  -> one consolidated execution preflight
+  -> implementation, cached/impacted gates, independent review
+  -> automatic repair and delta re-review for actionable findings
+  -> real API/Playwright tests and GitHub checks
   -> auto-merge the epic PR into coding
 ```
 
@@ -76,7 +79,11 @@ Business decisions and user-facing specifications may be Vietnamese. File names,
 
 - Planning never starts coding automatically.
 - `geki-run` requires explicit user invocation.
+- A direct Story run automatically validates and binds its Epic integration context without expanding scope.
+- Run state and evidence are shared through Git's common directory across linked worktrees.
+- Actionable findings continue through autonomous repair; the agent does not pause just to report them.
 - The same failure signature is repaired at most three times.
+- Passing gates are cached by command, policy, and application inputs; Geki metadata cannot invalidate them.
 - Material architecture gaps reopen the specification and invalidate affected downstream artifacts.
 - Static validation runs before semantic review; planning review is bounded to a baseline and delta closure, with a third round only for unresolved critical/high findings.
 - Full backlogs remain at capability/title level; only the current delivery slice receives executable Story Contracts.

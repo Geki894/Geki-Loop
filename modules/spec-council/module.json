@@ -1,6 +1,6 @@
 {
   "id": "spec-council",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Independent, risk-routed artifact review and readiness gates.",
   "bootstrap": true,
   "skills": ["geki-spec-review", "geki-readiness"],

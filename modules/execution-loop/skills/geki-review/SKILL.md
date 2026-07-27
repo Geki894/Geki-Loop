@@ -12,8 +12,10 @@ Perform two ordered passes:
 1. **Spec compliance:** verify each acceptance criterion, forbidden scope, contract, and required behavior.
 2. **Engineering quality:** inspect correctness, maintainability, framework conventions, data/security risks, error paths, and whether tests prove behavior rather than implementation details.
 
-Write findings with severity, file/location, evidence, impact, and required correction. Reject vague preferences and abstraction-by-fashion. The author cannot approve their own work.
+Write findings with a stable `id`, severity, file/location, evidence, impact, required correction, `actionable`, `affectedGates`, `requiresUserDecision`, and optional `stopReason`. Valid stop reasons are `product-intent`, `scope`, `architecture`, `credential`, `cost`, `destructive`, and `safety`. Reject vague preferences and abstraction-by-fashion. The author cannot approve their own work.
 
-Write machine evidence as JSON. A passing Story review uses `kind: independent-review`, the exact `storyId`, `gate: independent-review`, `outcome: passed`, a distinct `reviewerContextId`, exact `reviewedCommit`, `unresolvedHighCritical: 0`, and findings. A repair-limit review uses `kind: repair-review`, the exact failure `signature`, exact `reviewedCommit`, `outcome: passed`, a distinct reviewer context, no unresolved high/critical finding, and a non-empty `approvedStrategy`. Never turn an arbitrary file into review evidence.
+Write machine evidence as JSON. A passing Story review uses `kind: independent-review`, the exact `storyId`, `gate: independent-review`, `outcome: passed`, a distinct `reviewerContextId`, exact `reviewedCommit`, `unresolvedHighCritical: 0`, and findings. A failed review uses the same identity fields plus `outcome: failed` and structured findings. Submit either result through `state.mjs review-result --story <id> --evidence <file>`; the controller decides repair versus a valid user stop.
 
 Create the packet with `node .geki/runtime/review-packet.mjs --story <id> --base <ref>`. The independent context must first run `review-packet.mjs verify <packet>` and refuse stale/invalid sources. If the harness cannot create an independent context, require a new session invoking `geki-review current` with that exact packet path. Antigravity must use this clean-context route when it has no subagent facility.
+
+After a repair, review only the pending finding IDs and direct regressions identified in the packet. Do not reopen unrelated medium/low preferences or repeat the full baseline rubric.

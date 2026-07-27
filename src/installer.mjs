@@ -5,7 +5,7 @@ import { copyFile, exists, hashFile, readJson, relativeUnix, removeEmptyParents,
 import { loadCatalog, resolveModules } from "./catalog.mjs";
 import { packageRoot, projectPaths, runtimeRoot, templatesRoot } from "./paths.mjs";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const AGENTS_START = "<!-- geki:start -->";
 const AGENTS_END = "<!-- geki:end -->";
 const AGENTS_BLOCK = `${AGENTS_START}\n## Geki Loop\n\nUse project-local skills under \`.agents/skills\`. Start with \`geki-help\` whenever phase or next action is unclear. Treat \`.geki/state/planning.json\`, \`.geki/state/current-run.json\`, \`.geki/architecture.json\`, the current delivery slice, approved Story Contracts, and Git evidence as authoritative. Never begin autonomous coding without an explicit \`geki-run\` scope.\n${AGENTS_END}`;
@@ -61,7 +61,8 @@ async function collectDistributionFiles() {
 
 async function staticPlan(moduleIds, tools) {
   const plan = [
-    { source: path.join(templatesRoot, "project", "gates.json"), destination: path.join(".geki", "gates.json"), module: "core", kind: "config", createOnly: true }
+    { source: path.join(templatesRoot, "project", "gates.json"), destination: path.join(".geki", "gates.json"), module: "core", kind: "config", createOnly: true },
+    { source: path.join(templatesRoot, "project", "toolchain-policy.json"), destination: path.join(".geki", "toolchain-policy.json"), module: "core", kind: "config", createOnly: true }
   ];
   if (tools.includes("antigravity")) {
     plan.push(
@@ -93,6 +94,12 @@ async function initializeProjectFiles(paths, tools, moduleIds) {
   if (!(await exists(paths.architecture))) await copyFile(path.join(templatesRoot, "project", "architecture.json"), paths.architecture);
   if (!(await exists(paths.state))) {
     const state = await readJson(path.join(templatesRoot, "project", "current-run.json"));
+    state.updatedAt = new Date().toISOString();
+    await writeJson(paths.state, state);
+  } else {
+    const defaults = await readJson(path.join(templatesRoot, "project", "current-run.json"));
+    const state = await readJson(paths.state);
+    for (const [key, value] of Object.entries(defaults)) if (!(key in state)) state[key] = value;
     state.updatedAt = new Date().toISOString();
     await writeJson(paths.state, state);
   }
@@ -134,6 +141,7 @@ export async function installProject({ target, requestedModules, tools, force = 
     ".geki/lock.json",
     ".geki/manifest.json",
     ".geki/architecture.json",
+    ".geki/toolchain-policy.json",
     ".geki/state/current-run.json",
     ".geki/state/planning.json",
     ".geki/state/events.jsonl",

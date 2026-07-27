@@ -2,9 +2,11 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { controlPath, relativeControl, resolveProjectContext } from "./project-context.mjs";
 
 const args = process.argv.slice(2);
 const command = args.shift();
+const context = resolveProjectContext();
 
 function flag(name, fallback = undefined) {
   const index = args.indexOf(`--${name}`);
@@ -33,11 +35,11 @@ function view(pr) {
 }
 
 function writeEvidence(pr, data, suffix = "") {
-  const directory = path.join(process.cwd(), ".geki", "evidence", "github");
+  const directory = controlPath(context, "evidence", "github");
   fs.mkdirSync(directory, { recursive: true });
   const file = path.join(directory, `pr-${pr}${suffix}.json`);
   fs.writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-  return path.relative(process.cwd(), file).split(path.sep).join("/");
+  return relativeControl(context, file);
 }
 
 if (command === "epic-pr") {
@@ -81,7 +83,7 @@ if (command === "epic-pr") {
   if (result.baseRefName !== "coding") throw new Error(`Epic PR base is '${result.baseRefName}', expected 'coding'.`);
   if (result.state !== "MERGED") throw new Error(`Epic PR is '${result.state}', expected 'MERGED' after required checks.`);
   if (result.headRefOid !== expectedHead) throw new Error("Epic PR head SHA does not match the verified commit.");
-  const requestFile = path.join(process.cwd(), ".geki", "evidence", "github", `pr-${result.number}-auto-request.json`);
+  const requestFile = controlPath(context, "evidence", "github", `pr-${result.number}-auto-request.json`);
   const request = JSON.parse(fs.readFileSync(requestFile, "utf8"));
   if (request.kind !== "epic-auto-merge-request" || request.headRefOid !== expectedHead || request.baseRefName !== "coding") throw new Error("Matching auto-merge request evidence is missing or invalid.");
   const evidence = { schemaVersion: 1, kind: "epic-github", epicId, verifiedAt: new Date().toISOString(), requiredChecks: checks, autoMergeRequest: request, ...result };

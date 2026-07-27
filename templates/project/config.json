@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gekiVersion": "0.2.0",
+  "gekiVersion": "0.3.0",
   "tools": ["codex", "antigravity"],
   "language": {
     "conversation": "vi",
