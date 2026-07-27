@@ -1,15 +1,22 @@
 import path from "node:path";
+import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 
+function canonical(input) {
+  const resolved = path.resolve(input);
+  try { return fs.realpathSync.native(resolved); }
+  catch { return resolved; }
+}
+
 export function resolveProjectContext(workspace = process.cwd()) {
-  const workspaceRoot = path.resolve(workspace);
+  const workspaceRoot = canonical(workspace);
   const result = spawnSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
     cwd: workspaceRoot,
     encoding: "utf8"
   });
   if (result.status !== 0) return { workspaceRoot, controlRoot: workspaceRoot, commonGitDir: null, linkedWorktree: false };
-  const commonGitDir = path.resolve(workspaceRoot, result.stdout.trim());
-  const controlRoot = path.basename(commonGitDir).toLowerCase() === ".git" ? path.dirname(commonGitDir) : workspaceRoot;
+  const commonGitDir = canonical(path.resolve(workspaceRoot, result.stdout.trim()));
+  const controlRoot = path.basename(commonGitDir).toLowerCase() === ".git" ? canonical(path.dirname(commonGitDir)) : workspaceRoot;
   return {
     workspaceRoot,
     controlRoot,
