@@ -100,16 +100,14 @@ function evidenceSupportsGate(id, payload, binding = {}) {
 async function evidenceMetadata(input, expectedGate = null, binding = {}) {
   if (!input || input === true) throw new Error("A project-local --evidence file is required for a passing gate.");
   const file = path.resolve(controlRoot, input);
-  const relative = path.relative(controlRoot, file);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Evidence must be inside the project.");
-  const relativeUnix = relative.split(path.sep).join("/");
+  const realFile = await fs.realpath(file);
+  const realRelative = path.relative(realControlRoot, realFile);
+  if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) throw new Error("Evidence escapes the real project boundary.");
+  const relativeUnix = realRelative.split(path.sep).join("/");
   if (expectedGate) {
     const prefix = expectedGate === "github" ? ".geki/evidence/github/" : expectedGate === "independent-review" ? ".geki/evidence/review/" : ".geki/evidence/gates/";
     if (!relativeUnix.startsWith(prefix)) throw new Error(`Evidence for '${expectedGate}' must be written under ${prefix}`);
   }
-  const realFile = await fs.realpath(file);
-  const realRelative = path.relative(realControlRoot, realFile);
-  if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) throw new Error("Evidence escapes the real project boundary.");
   const data = await fs.readFile(realFile);
   let payload;
   try { payload = JSON.parse(data.toString("utf8")); } catch { throw new Error("Evidence must be JSON."); }
@@ -121,7 +119,7 @@ async function evidenceMetadata(input, expectedGate = null, binding = {}) {
     ? (payload.results || payload.gateResults || []).find((item) => (item.id === expectedGate || item.gate === expectedGate) && item.outcome === "passed")
     : null;
   return {
-    path: relativeControl(context, realFile),
+    path: relativeUnix,
     sha256: createHash("sha256").update(data).digest("hex"),
     bytes: data.length,
     sourceCommit,
@@ -136,9 +134,10 @@ async function evidenceMetadata(input, expectedGate = null, binding = {}) {
 async function preflightMetadata(input, stories) {
   if (!input || input === true) throw new Error("Execution requires --preflight <passed-report> from execution-preflight.mjs.");
   const file = path.resolve(controlRoot, input);
-  const relative = path.relative(controlRoot, file);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Preflight evidence must be inside the project.");
-  const data = await fs.readFile(file);
+  const realFile = await fs.realpath(file);
+  const realRelative = path.relative(realControlRoot, realFile);
+  if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) throw new Error("Preflight evidence must be inside the project.");
+  const data = await fs.readFile(realFile);
   const payload = JSON.parse(data.toString("utf8"));
   if (payload.kind !== "execution-preflight" || payload.outcome !== "passed") throw new Error("Preflight evidence is not a passing execution-preflight report.");
   if (JSON.stringify(payload.scope?.stories || []) !== JSON.stringify(stories)) throw new Error("Preflight scope does not match the requested Story scope.");
@@ -159,7 +158,7 @@ async function preflightMetadata(input, stories) {
   ]) inputHash.update(await fs.readFile(inputFile)).update("\0");
   if (payload.inputHash !== inputHash.digest("hex")) throw new Error("Preflight evidence is stale for the current Architecture, modules, gates, or Story Contracts.");
   return {
-    path: relativeControl(context, file),
+    path: realRelative.split(path.sep).join("/"),
     sha256: createHash("sha256").update(data).digest("hex"),
     inputHash: payload.inputHash,
     createdAt: payload.createdAt
@@ -414,7 +413,9 @@ if (command === "status") {
   if (payload?.kind !== "independent-review" || payload?.storyId !== story || !payload?.reviewerContextId || payload?.reviewedCommit !== currentCommit) {
     throw new Error("review-result requires independent-review JSON for the active Story and current commit.");
   }
-  if (!relativeControl(context, reviewFile).startsWith(".geki/evidence/review/")) throw new Error("Independent review evidence must be stored under .geki/evidence/review.");
+  const reviewRealFile = await fs.realpath(reviewFile);
+  const reviewRelative = path.relative(realControlRoot, reviewRealFile).split(path.sep).join("/");
+  if (!reviewRelative.startsWith(".geki/evidence/review/")) throw new Error("Independent review evidence must be stored under .geki/evidence/review.");
   if (payload.outcome === "passed") {
     if (Number(payload.unresolvedHighCritical || 0) !== 0) throw new Error("A passing review cannot contain unresolved high/critical findings.");
     const evidence = await evidenceMetadata(reviewPath, "independent-review", { story });
